@@ -92,8 +92,35 @@ public class GestionInsumos implements ICRUD<Insumo> {
             System.err.println("Error al buscar insumo: " + e.getMessage());
         }
         return null;
+        
     }
     
+    public List<Insumo> buscarPorNombre(String nombre) {
+        List<Insumo> lista = new ArrayList<>();
+        String sql = "SELECT * FROM insumo WHERE nombre LIKE ?";
+        
+        try (PreparedStatement ps = conexion.prepareStatement(sql)) {
+            ps.setString(1, "%" + nombre + "%");
+            ResultSet rs = ps.executeQuery();
+            
+            while (rs.next()) {
+                Insumo insumo = new Insumo();
+                insumo.setId(rs.getInt("id_insumo"));
+                insumo.setCodigoPropio(rs.getString("codigo_propio"));
+                insumo.setNombre(rs.getString("nombre"));
+                insumo.setDescripcion(rs.getString("descripcion"));
+                insumo.setStockActual(rs.getInt("stock_actual"));
+                insumo.setStockMinimo(rs.getInt("stock_minimo"));
+                insumo.setStockDeseado(rs.getInt("stock_deseado"));
+                insumo.setUnidadMedida(rs.getString("unidad_medida"));
+                insumo.setIdCategoria(rs.getInt("id_categoria"));
+                lista.add(insumo);
+            }
+        } catch (SQLException e) {
+            System.err.println("Error al buscar por nombre: " + e.getMessage());
+        }
+        return lista;
+    }  
     @Override
     public boolean modificar(Insumo insumo) {
         String sql = "UPDATE insumo SET nombre=?, descripcion=?, stock_actual=?, stock_minimo=?, stock_deseado=?, unidad_medida=?, id_categoria=? WHERE id_insumo=?";
