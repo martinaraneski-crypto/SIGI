@@ -5,19 +5,25 @@ import java.sql.DriverManager;
 
 public class TestConexionSimple {
     public static void main(String[] args) {
+        System.out.println("Buscando el JAR...");
+        
+        String[] jars = System.getProperty("java.class.path").split(";");
+        for (String jar : jars) {
+            if (jar.contains("mysql")) {
+                System.out.println("Encontrado: " + jar);
+            }
+        }
+        
         try {
-            Class.forName("com.mysql.cj.jdbc.Driver");
-            System.out.println("✅ Driver MySQL encontrado");
-            
+            Class.forName("com.mysql.jdbc.Driver");   
+            System.out.println("Driver encontrado");
             Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/sigi", "root", "");
-            System.out.println("✅ Conexión exitosa a la base de datos 'sigi'");
+            System.out.println("✅ Conexión exitosa");
             conn.close();
-            
         } catch (ClassNotFoundException e) {
-            System.out.println("❌ ERROR: No se encontró el driver MySQL");
-            System.out.println("   Verificá que el JAR esté en Referenced Libraries");
+            System.out.println("❌ Driver NO encontrado");
         } catch (Exception e) {
-            System.out.println("❌ ERROR de conexión: " + e.getMessage());
+            System.out.println("❌ Error: " + e.getMessage());
         }
     }
 }

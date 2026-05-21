@@ -5,14 +5,13 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+
 import javax.swing.JOptionPane;
 
 import BLL.Insumo;
 import BLL.Movimiento;
-import BLL.TipoMovimiento;
 import repository.ICRUD;
 import repository.StockInsuficienteException;
 
@@ -23,8 +22,6 @@ public class GestionInsumos implements ICRUD<Insumo> {
     public GestionInsumos() {
         this.conexion = ConexionBD.getInstance().getConexion();
     }
-    
-   
     
     @Override
     public boolean agregar(Insumo insumo) {
@@ -97,7 +94,7 @@ public class GestionInsumos implements ICRUD<Insumo> {
                 return insumo;
             }
         } catch (SQLException e) {
-            System.err.println("Error al buscar insumo: " + e.getMessage());
+            System.err.println("Error al buscar insumo por ID: " + e.getMessage());
         }
         return null;
     }
@@ -125,6 +122,32 @@ public class GestionInsumos implements ICRUD<Insumo> {
             }
         } catch (SQLException e) {
             System.err.println("Error al buscar por nombre: " + e.getMessage());
+        }
+        return lista;
+    }
+    
+    public List<Insumo> listarPorCategoria(int idCategoria) {
+        List<Insumo> lista = new ArrayList<>();
+        String sql = "SELECT * FROM insumo WHERE id_categoria = ?";
+        
+        try (PreparedStatement ps = conexion.prepareStatement(sql)) {
+            ps.setInt(1, idCategoria);
+            ResultSet rs = ps.executeQuery();
+            
+            while (rs.next()) {
+                Insumo insumo = new Insumo();
+                insumo.setId(rs.getInt("id_insumo"));
+                insumo.setNombre(rs.getString("nombre"));
+                insumo.setDescripcion(rs.getString("descripcion"));
+                insumo.setStockActual(rs.getInt("stock_actual"));
+                insumo.setStockMinimo(rs.getInt("stock_minimo"));
+                insumo.setStockDeseado(rs.getInt("stock_deseado"));
+                insumo.setUnidadMedida(rs.getString("unidad_medida"));
+                insumo.setIdCategoria(rs.getInt("id_categoria"));
+                lista.add(insumo);
+            }
+        } catch (SQLException e) {
+            System.err.println("Error al listar por categoría: " + e.getMessage());
         }
         return lista;
     }
@@ -167,10 +190,31 @@ public class GestionInsumos implements ICRUD<Insumo> {
         }
     }
     
+    public void registrarConsumo(int id, int cantidad) throws StockInsuficienteException {
+        Insumo insumo = buscarPorId(id);
+        
+        if (insumo != null) {
+            if (cantidad > insumo.getStockActual()) {
+                throw new StockInsuficienteException("Stock insuficiente. Actual: " + insumo.getStockActual() + ", Solicitado: " + cantidad);
+            }
+            int nuevoStock = insumo.getStockActual() - cantidad;
+            insumo.setStockActual(nuevoStock);
+            modificar(insumo);
+        }
+    }
     
+    public void registrarIngreso(int id, int cantidad) {
+        Insumo insumo = buscarPorId(id);
+        if (insumo != null) {
+            int nuevoStock = insumo.getStockActual() + cantidad;
+            insumo.setStockActual(nuevoStock);
+            modificar(insumo);
+        }
+    }
     
-    public boolean actualizarStock(int idInsumo, int cantidad, TipoMovimiento tipoMovimiento, 
-                                    int idUsuario, String observacion, int idLote) {
+   
+    
+    public boolean actualizarStock(int idInsumo, int cantidad, String tipoMovimiento, int idUsuario, String observacion) {
         Insumo insumo = buscarPorId(idInsumo);
         if (insumo == null) {
             JOptionPane.showMessageDialog(null, "Insumo no encontrado.");
@@ -178,14 +222,14 @@ public class GestionInsumos implements ICRUD<Insumo> {
         }
         
        
-        if (tipoMovimiento == TipoMovimiento.CONSUMO && cantidad > insumo.getStockActual()) {
-            JOptionPane.showMessageDialog(null, "❌ Stock insuficiente. Stock actual: " + insumo.getStockActual());
+        if (tipoMovimiento.equals("CONSUMO") && cantidad > insumo.getStockActual()) {
+            JOptionPane.showMessageDialog(null, "❌ Stock insuficiente.\nStock actual: " + insumo.getStockActual());
             return false;
         }
         
        
         int nuevoStock;
-        if (tipoMovimiento == TipoMovimiento.INGRESO) {
+        if (tipoMovimiento.equals("INGRESO")) {
             nuevoStock = insumo.getStockActual() + cantidad;
         } else {
             nuevoStock = insumo.getStockActual() - cantidad;
@@ -195,49 +239,30 @@ public class GestionInsumos implements ICRUD<Insumo> {
        
         GestionMovimientos gm = new GestionMovimientos();
         Movimiento movimiento = new Movimiento(
-            LocalDate.now(),
+            java.time.LocalDate.now(),
             tipoMovimiento,
             cantidad,
+            observacion,
             idInsumo,
-            idUsuario,
-            idLote
+            idUsuario
         );
-        movimiento.setObservacion(observacion);
+        
         
         if (modificar(insumo) && gm.guardarMovimiento(movimiento)) {
-           
+            
             if (insumo.getStockActual() <= insumo.getStockMinimo()) {
                 JOptionPane.showMessageDialog(null, 
                     "⚠️ ALERTA: El insumo '" + insumo.getNombre() + "' está en stock crítico!\n" +
                     "Stock actual: " + insumo.getStockActual() + " (Mínimo: " + insumo.getStockMinimo() + ")");
             }
             
-           
-            int sugerencia = insumo.getStockDeseado() - insumo.getStockActual();
-            if (sugerencia > 0) {
-                JOptionPane.showMessageDialog(null,
-                    "📋 SUGERENCIA DE PEDIDO:\n" +
-                    "Insumo: " + insumo.getNombre() + "\n" +
-                    "Stock actual: " + insumo.getStockActual() + "\n" +
-                    "Stock deseado: " + insumo.getStockDeseado() + "\n" +
-                    "Se recomienda pedir: " + sugerencia + " " + insumo.getUnidadMedida());
-            }
+            
+            JOptionPane.showMessageDialog(null,
+                "✅ " + (tipoMovimiento.equals("INGRESO") ? "Ingreso" : "Consumo") + " registrado.\n" +
+                "Stock actual de '" + insumo.getNombre() + "': " + insumo.getStockActual() + " " + insumo.getUnidadMedida());
             
             return true;
         }
         return false;
-    }
-    
-    public int obtenerSugerenciaPedido(int idInsumo) {
-        Insumo insumo = buscarPorId(idInsumo);
-        if (insumo == null) return 0;
-        int sugerencia = insumo.getStockDeseado() - insumo.getStockActual();
-        return sugerencia > 0 ? sugerencia : 0;
-    }
-    
-    public boolean isStockCritico(int idInsumo) {
-        Insumo insumo = buscarPorId(idInsumo);
-        if (insumo == null) return false;
-        return insumo.getStockActual() <= insumo.getStockMinimo();
     }
 }

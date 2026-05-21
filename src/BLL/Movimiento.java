@@ -5,23 +5,36 @@ import java.time.LocalDate;
 public class Movimiento {
     private int id;
     private LocalDate fecha;
-    private TipoMovimiento tipo;
+    private String tipo;  
     private int cantidad;
     private String observacion;
     private int idInsumo;
     private int idUsuario;
-    private int idLote;
+    
     
     public Movimiento() {}
     
-    public Movimiento(LocalDate fecha, TipoMovimiento tipo, int cantidad, 
-                      int idInsumo, int idUsuario, int idLote) {
+    
+    public Movimiento(LocalDate fecha, String tipo, int cantidad, 
+                      String observacion, int idInsumo, int idUsuario) {
         this.fecha = fecha;
         this.tipo = tipo;
         this.cantidad = cantidad;
+        this.observacion = observacion;
         this.idInsumo = idInsumo;
         this.idUsuario = idUsuario;
-        this.idLote = idLote;
+    }
+    
+  
+    public Movimiento(int id, LocalDate fecha, String tipo, int cantidad, 
+                      String observacion, int idInsumo, int idUsuario) {
+        this.id = id;
+        this.fecha = fecha;
+        this.tipo = tipo;
+        this.cantidad = cantidad;
+        this.observacion = observacion;
+        this.idInsumo = idInsumo;
+        this.idUsuario = idUsuario;
     }
     
     
@@ -31,8 +44,8 @@ public class Movimiento {
     public LocalDate getFecha() { return fecha; }
     public void setFecha(LocalDate fecha) { this.fecha = fecha; }
     
-    public TipoMovimiento getTipo() { return tipo; }
-    public void setTipo(TipoMovimiento tipo) { this.tipo = tipo; }
+    public String getTipo() { return tipo; }
+    public void setTipo(String tipo) { this.tipo = tipo; }
     
     public int getCantidad() { return cantidad; }
     public void setCantidad(int cantidad) { this.cantidad = cantidad; }
@@ -46,11 +59,8 @@ public class Movimiento {
     public int getIdUsuario() { return idUsuario; }
     public void setIdUsuario(int idUsuario) { this.idUsuario = idUsuario; }
     
-    public int getIdLote() { return idLote; }
-    public void setIdLote(int idLote) { this.idLote = idLote; }
-    
     @Override
     public String toString() {
-        return "Movimiento [id=" + id + ", fecha=" + fecha + ", tipo=" + tipo + ", cantidad=" + cantidad + "]";
+        return fecha + " - " + tipo + " - " + cantidad + " unidades";
     }
 }
