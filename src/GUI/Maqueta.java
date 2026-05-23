@@ -213,6 +213,7 @@ public class Maqueta {
             if (seleccion == JOptionPane.CLOSED_OPTION) return;
             
             Insumo insumo = insumos.get(seleccion);
+            String cantStr = JOptionPane.showInputDialog("Cantidad a consumir (Stock: " + insumo.getStockActual() + "):");
             if (cantStr == null) return;
             
             String obs = JOptionPane.showInputDialog("Observación (opcional):");
@@ -484,17 +485,24 @@ public class Maqueta {
     }
     
     public static void buscarInsumo() {
-        String nombre = JOptionPane.showInputDialog("Nombre a buscar:");
+        String nombre = JOptionPane.showInputDialog("🔍 Ingrese el nombre del insumo a buscar:");
         if (nombre == null) return;
+        
         GestionInsumos gestion = new GestionInsumos();
         List<Insumo> resultados = gestion.buscarPorNombre(nombre);
+        
         if (resultados.isEmpty()) {
-            JOptionPane.showMessageDialog(null, "No se encontraron.");
+            JOptionPane.showMessageDialog(null, "No se encontraron insumos con ese nombre.");
         } else {
-            StringBuilder sb = new StringBuilder("🔍 RESULTADOS:\n\n");
+            StringBuilder sb = new StringBuilder("🔍 RESULTADOS DE BÚSQUEDA:\n\n");
+            sb.append("ID | NOMBRE | STOCK | UNIDAD\n");
+            sb.append("----------------------------------------\n");
             for (Insumo i : resultados) {
-                sb.append(i.getId()).append(" - ").append(i.getNombre())
-                  .append(" | Stock: ").append(i.getStockActual()).append("\n");
+                sb.append(String.format("%-3d | %-20s | %-6d | %-10s\n", 
+                    i.getId(), 
+                    i.getNombre().length() > 18 ? i.getNombre().substring(0, 18) : i.getNombre(),
+                    i.getStockActual(),
+                    i.getUnidadMedida()));
             }
             JOptionPane.showMessageDialog(null, sb.toString());
         }
