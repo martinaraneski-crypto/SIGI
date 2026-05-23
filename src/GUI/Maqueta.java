@@ -50,6 +50,7 @@ public class Maqueta {
             }
         } while (opcion != 2);
     }
+	public static void main(String[] args) {
     
     // ==================== REGISTRO ====================
     public static void registrarUsuario() {
