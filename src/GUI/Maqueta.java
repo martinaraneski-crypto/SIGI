@@ -206,7 +206,6 @@ public class Maqueta {
             String[] nombres = new String[insumos.size()];
             for (int i = 0; i < insumos.size(); i++) {
                 Insumo obj = insumos.get(i);
-                nombres[i] = obj.getId() + " - " + obj.getNombre() + " | Stock: " + obj.getStockActual() + " " + obj.getUnidadMedida();
             }
             
             int seleccion = JOptionPane.showOptionDialog(null, "Seleccione el insumo:", 
@@ -214,7 +213,6 @@ public class Maqueta {
             if (seleccion == JOptionPane.CLOSED_OPTION) return;
             
             Insumo insumo = insumos.get(seleccion);
-            String cantStr = JOptionPane.showInputDialog("Cantidad a consumir (Stock: " + insumo.getStockActual() + " " + insumo.getUnidadMedida() + "):");
             if (cantStr == null) return;
             
             String obs = JOptionPane.showInputDialog("Observación (opcional):");
@@ -260,10 +258,10 @@ public class Maqueta {
                 return;
             }
             
+           
             String[] nombres = new String[insumos.size()];
             for (int i = 0; i < insumos.size(); i++) {
                 Insumo obj = insumos.get(i);
-                nombres[i] = obj.getId() + " - " + obj.getNombre() + " | Stock: " + obj.getStockActual() + " " + obj.getUnidadMedida();
             }
             
             int seleccion = JOptionPane.showOptionDialog(null, "Seleccione el insumo:", 
@@ -271,7 +269,7 @@ public class Maqueta {
             if (seleccion == JOptionPane.CLOSED_OPTION) return;
             
             Insumo insumo = insumos.get(seleccion);
-            String cantStr = JOptionPane.showInputDialog("Cantidad a ingresar (Stock actual: " + insumo.getStockActual() + " " + insumo.getUnidadMedida() + "):");
+            String cantStr = JOptionPane.showInputDialog("Cantidad a ingresar (Stock actual: " + insumo.getStockActual() + "):");
             if (cantStr == null) return;
             
             String obs = JOptionPane.showInputDialog("Observación (opcional):");
@@ -503,7 +501,6 @@ public class Maqueta {
     }
    
     
-    // ==================== MENÚS ====================
     
     public static void menuGestionInsumos() {
         String[] opciones = {"Listar", "Agregar", "Modificar", "Eliminar", "Buscar", "Volver"};
