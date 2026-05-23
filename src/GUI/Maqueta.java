@@ -180,15 +180,18 @@ public class Maqueta {
             
             if (areaSeleccionada == 2 || areaSeleccionada == JOptionPane.CLOSED_OPTION) return;
             
-            int idCategoria = (areaSeleccionada == 0) ? 1 : 0;
+            int idCategoria = 0;
             
-            if (areaSeleccionada == 1) {
+            if (areaSeleccionada == 0) { 
+                idCategoria = 6; 
+            } else if (areaSeleccionada == 1) { 
                 String[] subcategorias = {"Rutina", "Especiales", "Controles y Calibradores", "Consumibles", "Volver"};
                 int subSeleccion = JOptionPane.showOptionDialog(null, 
                     "Seleccione la subcategoría:", "Registrar Consumo", 0, 
                     JOptionPane.QUESTION_MESSAGE, null, subcategorias, subcategorias[0]);
                 
                 if (subSeleccion == 4 || subSeleccion == JOptionPane.CLOSED_OPTION) return;
+                
                 idCategoria = subSeleccion + 2;
             }
             
@@ -203,7 +206,7 @@ public class Maqueta {
             String[] nombres = new String[insumos.size()];
             for (int i = 0; i < insumos.size(); i++) {
                 Insumo obj = insumos.get(i);
-                nombres[i] = obj.getId() + " - " + obj.getNombre() + " | Stock: " + obj.getStockActual();
+                nombres[i] = obj.getId() + " - " + obj.getNombre() + " | Stock: " + obj.getStockActual() + " " + obj.getUnidadMedida();
             }
             
             int seleccion = JOptionPane.showOptionDialog(null, "Seleccione el insumo:", 
@@ -211,7 +214,7 @@ public class Maqueta {
             if (seleccion == JOptionPane.CLOSED_OPTION) return;
             
             Insumo insumo = insumos.get(seleccion);
-            String cantStr = JOptionPane.showInputDialog("Cantidad a consumir (Stock: " + insumo.getStockActual() + "):");
+            String cantStr = JOptionPane.showInputDialog("Cantidad a consumir (Stock: " + insumo.getStockActual() + " " + insumo.getUnidadMedida() + "):");
             if (cantStr == null) return;
             
             String obs = JOptionPane.showInputDialog("Observación (opcional):");
@@ -234,15 +237,18 @@ public class Maqueta {
             
             if (areaSeleccionada == 2 || areaSeleccionada == JOptionPane.CLOSED_OPTION) return;
             
-            int idCategoria = (areaSeleccionada == 0) ? 1 : 0;
+            int idCategoria = 0;
             
-            if (areaSeleccionada == 1) {
+            if (areaSeleccionada == 0) { 
+                idCategoria = 6; 
+            } else if (areaSeleccionada == 1) { 
                 String[] subcategorias = {"Rutina", "Especiales", "Controles y Calibradores", "Consumibles", "Volver"};
                 int subSeleccion = JOptionPane.showOptionDialog(null, 
                     "Seleccione la subcategoría:", "Registrar Ingreso", 0, 
                     JOptionPane.QUESTION_MESSAGE, null, subcategorias, subcategorias[0]);
                 
                 if (subSeleccion == 4 || subSeleccion == JOptionPane.CLOSED_OPTION) return;
+                
                 idCategoria = subSeleccion + 2;
             }
             
@@ -256,7 +262,8 @@ public class Maqueta {
             
             String[] nombres = new String[insumos.size()];
             for (int i = 0; i < insumos.size(); i++) {
-                nombres[i] = insumos.get(i).getId() + " - " + insumos.get(i).getNombre();
+                Insumo obj = insumos.get(i);
+                nombres[i] = obj.getId() + " - " + obj.getNombre() + " | Stock: " + obj.getStockActual() + " " + obj.getUnidadMedida();
             }
             
             int seleccion = JOptionPane.showOptionDialog(null, "Seleccione el insumo:", 
@@ -264,7 +271,7 @@ public class Maqueta {
             if (seleccion == JOptionPane.CLOSED_OPTION) return;
             
             Insumo insumo = insumos.get(seleccion);
-            String cantStr = JOptionPane.showInputDialog("Cantidad a ingresar:");
+            String cantStr = JOptionPane.showInputDialog("Cantidad a ingresar (Stock actual: " + insumo.getStockActual() + " " + insumo.getUnidadMedida() + "):");
             if (cantStr == null) return;
             
             String obs = JOptionPane.showInputDialog("Observación (opcional):");
@@ -494,6 +501,7 @@ public class Maqueta {
             JOptionPane.showMessageDialog(null, sb.toString());
         }
     }
+   
     
     // ==================== MENÚS ====================
     
@@ -514,7 +522,7 @@ public class Maqueta {
     }
     
     public static void menuEstadisticas() {
-        String[] opciones = {"Stock Actual", "Stock Crítico", "Pedido Sugerido", "Historial Completo", "Volver"};
+        String[] opciones = {"Stock", "Stock Crítico", "Pedido Sugerido", "Historial Completo", "Volver"};
         int op;
         do {
             op = JOptionPane.showOptionDialog(null, "Estadísticas", "ADMIN", 
