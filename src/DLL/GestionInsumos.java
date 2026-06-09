@@ -11,6 +11,7 @@ import java.util.List;
 import javax.swing.JOptionPane;
 
 import BLL.Insumo;
+import BLL.Lote;
 import BLL.Movimiento;
 import repository.ICRUD;
 import repository.StockInsuficienteException;
@@ -22,6 +23,53 @@ public class GestionInsumos implements ICRUD<Insumo> {
     public GestionInsumos() {
         this.conexion = ConexionBD.getInstance().getConexion();
     }
+    
+    
+    public void guardarLote(int idInsumo, String numeroLote, java.time.LocalDate fechaVencimiento) {
+        String sql = "INSERT INTO lote (numero_lote, fecha_vencimiento, id_insumo) VALUES (?, ?, ?)";
+        
+        try (PreparedStatement ps = conexion.prepareStatement(sql)) {
+            ps.setString(1, numeroLote);
+            if (fechaVencimiento != null) {
+                ps.setDate(2, java.sql.Date.valueOf(fechaVencimiento));
+            } else {
+                ps.setNull(2, java.sql.Types.DATE);
+            }
+            ps.setInt(3, idInsumo);
+            ps.executeUpdate();
+            System.out.println("✅ Lote guardado: " + numeroLote);
+        } catch (SQLException e) {
+            System.err.println("Error al guardar lote: " + e.getMessage());
+        }
+    }
+    
+    
+    public List<Lote> obtenerLotesPorInsumo(int idInsumo) {
+        List<Lote> lotes = new ArrayList<>();
+        String sql = "SELECT * FROM lote WHERE id_insumo = ? ORDER BY fecha_vencimiento ASC";
+        
+        try (PreparedStatement ps = conexion.prepareStatement(sql)) {
+            ps.setInt(1, idInsumo);
+            ResultSet rs = ps.executeQuery();
+            
+            while (rs.next()) {
+                Lote lote = new Lote();
+                lote.setId(rs.getInt("id_lote"));
+                lote.setNumeroLote(rs.getString("numero_lote"));
+                java.sql.Date fechaSQL = rs.getDate("fecha_vencimiento");
+                if (fechaSQL != null) {
+                    lote.setFechaVencimiento(fechaSQL.toLocalDate());
+                }
+                lote.setIdInsumo(rs.getInt("id_insumo"));
+                lotes.add(lote);
+            }
+        } catch (SQLException e) {
+            System.err.println("Error al obtener lotes: " + e.getMessage());
+        }
+        return lotes;
+    }
+    
+    
     
     @Override
     public boolean agregar(Insumo insumo) {
