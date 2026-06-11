@@ -14,7 +14,7 @@ import BLL.Insumo;
 import BLL.Lote;
 import BLL.Movimiento;
 import repository.ICRUD;
-import repository.StockInsuficienteException;
+
 
 public class GestionInsumos implements ICRUD<Insumo> {
     
@@ -25,8 +25,8 @@ public class GestionInsumos implements ICRUD<Insumo> {
     }
     
     
-    public void guardarLote(int idInsumo, String numeroLote, java.time.LocalDate fechaVencimiento) {
-        String sql = "INSERT INTO lote (numero_lote, fecha_vencimiento, id_insumo) VALUES (?, ?, ?)";
+    public void guardarLote(int idInsumo, String numeroLote, java.time.LocalDate fechaVencimiento, int cantidad) {
+        String sql = "INSERT INTO lote (numero_lote, fecha_vencimiento, id_insumo, stock_lote) VALUES (?, ?, ?, ?)";
         
         try (PreparedStatement ps = conexion.prepareStatement(sql)) {
             ps.setString(1, numeroLote);
@@ -36,17 +36,31 @@ public class GestionInsumos implements ICRUD<Insumo> {
                 ps.setNull(2, java.sql.Types.DATE);
             }
             ps.setInt(3, idInsumo);
+            ps.setInt(4, cantidad);
             ps.executeUpdate();
-            System.out.println("✅ Lote guardado: " + numeroLote);
+            System.out.println("✅ Lote guardado: " + numeroLote + " | Stock: " + cantidad);
         } catch (SQLException e) {
             System.err.println("Error al guardar lote: " + e.getMessage());
         }
     }
-    
+    public boolean descontarDeLote(int idLote, int cantidad) {
+        String sql = "UPDATE lote SET stock_lote = stock_lote - ? WHERE id_lote = ? AND stock_lote >= ?";
+        
+        try (PreparedStatement ps = conexion.prepareStatement(sql)) {
+            ps.setInt(1, cantidad);
+            ps.setInt(2, idLote);
+            ps.setInt(3, cantidad);
+            int filas = ps.executeUpdate();
+            return filas > 0;
+        } catch (SQLException e) {
+            System.err.println("Error al descontar de lote: " + e.getMessage());
+            return false;
+        }
+    }
     
     public List<Lote> obtenerLotesPorInsumo(int idInsumo) {
         List<Lote> lotes = new ArrayList<>();
-        String sql = "SELECT * FROM lote WHERE id_insumo = ? ORDER BY fecha_vencimiento ASC";
+        String sql = "SELECT * FROM lote WHERE id_insumo = ? AND stock_lote > 0 ORDER BY fecha_vencimiento ASC";
         
         try (PreparedStatement ps = conexion.prepareStatement(sql)) {
             ps.setInt(1, idInsumo);
@@ -61,6 +75,7 @@ public class GestionInsumos implements ICRUD<Insumo> {
                     lote.setFechaVencimiento(fechaSQL.toLocalDate());
                 }
                 lote.setIdInsumo(rs.getInt("id_insumo"));
+                lote.setStockLote(rs.getInt("stock_lote"));  // ← AGREGAR ESTO
                 lotes.add(lote);
             }
         } catch (SQLException e) {
@@ -68,8 +83,8 @@ public class GestionInsumos implements ICRUD<Insumo> {
         }
         return lotes;
     }
-    
-    
+   
+        
     
     @Override
     public boolean agregar(Insumo insumo) {
@@ -238,29 +253,7 @@ public class GestionInsumos implements ICRUD<Insumo> {
         }
     }
     
-    public void registrarConsumo(int id, int cantidad) throws StockInsuficienteException {
-        Insumo insumo = buscarPorId(id);
-        
-        if (insumo != null) {
-            if (cantidad > insumo.getStockActual()) {
-                throw new StockInsuficienteException("Stock insuficiente. Actual: " + insumo.getStockActual() + ", Solicitado: " + cantidad);
-            }
-            int nuevoStock = insumo.getStockActual() - cantidad;
-            insumo.setStockActual(nuevoStock);
-            modificar(insumo);
-        }
-    }
     
-    public void registrarIngreso(int id, int cantidad) {
-        Insumo insumo = buscarPorId(id);
-        if (insumo != null) {
-            int nuevoStock = insumo.getStockActual() + cantidad;
-            insumo.setStockActual(nuevoStock);
-            modificar(insumo);
-        }
-    }
-    
-   
     
     public boolean actualizarStock(int idInsumo, int cantidad, String tipoMovimiento, int idUsuario, String observacion) {
         Insumo insumo = buscarPorId(idInsumo);
@@ -269,13 +262,11 @@ public class GestionInsumos implements ICRUD<Insumo> {
             return false;
         }
         
-       
         if (tipoMovimiento.equals("CONSUMO") && cantidad > insumo.getStockActual()) {
             JOptionPane.showMessageDialog(null, "❌ Stock insuficiente.\nStock actual: " + insumo.getStockActual());
             return false;
         }
         
-       
         int nuevoStock;
         if (tipoMovimiento.equals("INGRESO")) {
             nuevoStock = insumo.getStockActual() + cantidad;
@@ -284,7 +275,6 @@ public class GestionInsumos implements ICRUD<Insumo> {
         }
         insumo.setStockActual(nuevoStock);
         
-       
         GestionMovimientos gm = new GestionMovimientos();
         Movimiento movimiento = new Movimiento(
             java.time.LocalDate.now(),
@@ -295,15 +285,12 @@ public class GestionInsumos implements ICRUD<Insumo> {
             idUsuario
         );
         
-        
         if (modificar(insumo) && gm.guardarMovimiento(movimiento)) {
-            
             if (insumo.getStockActual() <= insumo.getStockMinimo()) {
                 JOptionPane.showMessageDialog(null, 
                     "⚠️ ALERTA: El insumo '" + insumo.getNombre() + "' está en stock crítico!\n" +
                     "Stock actual: " + insumo.getStockActual() + " (Mínimo: " + insumo.getStockMinimo() + ")");
             }
-            
             
             JOptionPane.showMessageDialog(null,
                 "✅ " + (tipoMovimiento.equals("INGRESO") ? "Ingreso" : "Consumo") + " registrado.\n" +
@@ -314,3 +301,4 @@ public class GestionInsumos implements ICRUD<Insumo> {
         return false;
     }
 }
+

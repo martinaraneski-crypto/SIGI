@@ -16,6 +16,12 @@ public class Lote {
         this.idInsumo = idInsumo;
     }
     
+    private int stockLote;
+
+    public int getStockLote() { return stockLote; }
+    public void setStockLote(int stockLote) { this.stockLote = stockLote; }
+    
+    
     public Lote(int id, String numeroLote, LocalDate fechaVencimiento, int idInsumo) {
         this.id = id;
         this.numeroLote = numeroLote;

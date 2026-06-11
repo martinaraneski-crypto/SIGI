@@ -1,6 +1,7 @@
 package GUI;
 
 import javax.swing.JOptionPane;
+import com.toedter.calendar.JDateChooser;
 import java.util.List;
 import DLL.ControllerUsuario;
 import DLL.GestionInsumos;
@@ -9,50 +10,53 @@ import BLL.Insumo;
 import BLL.Movimiento;
 import BLL.RolUsuario;
 import BLL.Usuario;
+import BLL.Lote;
+import java.util.List;
 
 public class Maqueta {
 
-    public static void main(String[] args) {
-        
-        String[] menuPrincipal = {"Ingresar", "Registrar", "Salir"};
-        ControllerUsuario controller = new ControllerUsuario();
-        
-        int opcion;
-        do {
-            opcion = JOptionPane.showOptionDialog(null, 
-                "Sistema de Gestión de Insumos - SIGI\n\nElija una opción:", 
-                "SIGI", 
-                0, 
-                JOptionPane.INFORMATION_MESSAGE, 
-                null, 
-                menuPrincipal, 
-                menuPrincipal[0]);
-            
-            if (opcion == 0) {
-                String nombreUsuario = JOptionPane.showInputDialog("Ingrese nombre de usuario:");
-                String contrasenia = JOptionPane.showInputDialog("Ingrese contraseña:");
-                
-                Usuario usuarioLogueado = controller.login(nombreUsuario, contrasenia);
-                
-                if (usuarioLogueado != null) {
-                    JOptionPane.showMessageDialog(null, "Bienvenido " + usuarioLogueado.getNombreCompleto());
-                    
-                    if (usuarioLogueado.getRol() == RolUsuario.ADMIN) {
-                        menuAdministrador(usuarioLogueado);
-                    } else {
-                        menuOperador(usuarioLogueado);
-                    }
-                } else {
-                    JOptionPane.showMessageDialog(null, "Usuario o contraseña incorrectos");
-                }
-            } else if (opcion == 1) {
-                registrarUsuario();
-            }
-        } while (opcion != 2);
-    }
 	public static void main(String[] args) {
+	    
+	    String[] menuPrincipal = {"Ingresar", "Registrar", "Salir"};
+	    ControllerUsuario controller = new ControllerUsuario();
+	    
+	    
+	    javax.swing.ImageIcon logo = new javax.swing.ImageIcon("src/img/sigi_logo.jpg");
+	    
+	    int opcion;
+	    do {
+	        opcion = JOptionPane.showOptionDialog(null, 
+	            "Sistema de Gestión de Insumos - SIGI\n\nElija una opción:", 
+	            "SIGI", 
+	            0, 
+	            JOptionPane.INFORMATION_MESSAGE, 
+	            logo,  
+	            menuPrincipal, 
+	            menuPrincipal[0]);
+	        
+	        if (opcion == 0) {
+	            String nombreUsuario = JOptionPane.showInputDialog("Ingrese nombre de usuario:");
+	            String contrasenia = JOptionPane.showInputDialog("Ingrese contraseña:");
+	            
+	            Usuario usuarioLogueado = controller.login(nombreUsuario, contrasenia);
+	            
+	            if (usuarioLogueado != null) {
+	                JOptionPane.showMessageDialog(null, "Bienvenido " + usuarioLogueado.getNombreCompleto());
+	                
+	                if (usuarioLogueado.getRol() == RolUsuario.ADMIN) {
+	                    menuAdministrador(usuarioLogueado);
+	                } else {
+	                    menuOperador(usuarioLogueado);
+	                }
+	            } else {
+	                JOptionPane.showMessageDialog(null, "Usuario o contraseña incorrectos");
+	            }
+	        } else if (opcion == 1) {
+	            registrarUsuario();
+	        }
+	    } while (opcion != 2);
+	}
     
-    // ==================== REGISTRO ====================
     public static void registrarUsuario() {
         String nombreUsuario = JOptionPane.showInputDialog("Ingrese nombre de usuario:");
         if (nombreUsuario == null || nombreUsuario.trim().isEmpty()) {
@@ -82,7 +86,7 @@ public class Maqueta {
         }
     }
     
-    // ==================== STOCK ====================
+    
     public static void verStockActual() {
         GestionInsumos gestion = new GestionInsumos();
         List<Insumo> stock = gestion.listar();
@@ -170,7 +174,7 @@ public class Maqueta {
         }
     }
     
-    // ==================== MOVIMIENTOS ====================
+    
     
     public static void registrarConsumo(Usuario usuarioLogueado) {
         try {
@@ -183,16 +187,15 @@ public class Maqueta {
             
             int idCategoria = 0;
             
-            if (areaSeleccionada == 0) { 
-                idCategoria = 6; 
-            } else if (areaSeleccionada == 1) { 
+            if (areaSeleccionada == 0) {
+                idCategoria = 6;
+            } else if (areaSeleccionada == 1) {
                 String[] subcategorias = {"Rutina", "Especiales", "Controles y Calibradores", "Consumibles", "Volver"};
                 int subSeleccion = JOptionPane.showOptionDialog(null, 
                     "Seleccione la subcategoría:", "Registrar Consumo", 0, 
                     JOptionPane.QUESTION_MESSAGE, null, subcategorias, subcategorias[0]);
                 
                 if (subSeleccion == 4 || subSeleccion == JOptionPane.CLOSED_OPTION) return;
-                
                 idCategoria = subSeleccion + 2;
             }
             
@@ -207,6 +210,7 @@ public class Maqueta {
             String[] nombres = new String[insumos.size()];
             for (int i = 0; i < insumos.size(); i++) {
                 Insumo obj = insumos.get(i);
+                nombres[i] = obj.getId() + " - " + obj.getNombre() + " | Stock: " + obj.getStockActual();
             }
             
             int seleccion = JOptionPane.showOptionDialog(null, "Seleccione el insumo:", 
@@ -214,14 +218,75 @@ public class Maqueta {
             if (seleccion == JOptionPane.CLOSED_OPTION) return;
             
             Insumo insumo = insumos.get(seleccion);
-            String cantStr = JOptionPane.showInputDialog("Cantidad a consumir (Stock: " + insumo.getStockActual() + "):");
+            
+           
+            List<Lote> lotes = gestion.obtenerLotesPorInsumo(insumo.getId());
+            
+            if (lotes.isEmpty()) {
+                JOptionPane.showMessageDialog(null, "No hay lotes registrados para este insumo.");
+                return;
+            }
+            
+       
+            StringBuilder sb = new StringBuilder("📦 LOTES DISPONIBLES:\n\n");
+            for (int i = 0; i < lotes.size(); i++) {
+                Lote l = lotes.get(i);
+                sb.append((i+1) + ". Lote: ").append(l.getNumeroLote());
+                if (l.getFechaVencimiento() != null) {
+                    sb.append(" | Vence: ").append(l.getFechaVencimiento());
+                 
+                    java.time.LocalDate hoy = java.time.LocalDate.now();
+                    if (l.getFechaVencimiento().isBefore(hoy)) {
+                        sb.append(" ⚠️ VENCIDO");
+                    } else if (l.getFechaVencimiento().minusDays(30).isBefore(hoy)) {
+                        sb.append(" ⚠️ PRÓXIMO A VENCER (menos de 30 días)");
+                    }
+                } else {
+                    sb.append(" | Sin vencimiento");
+                }
+                sb.append("\n");
+            }
+            
+           
+            Lote sugerido = lotes.get(0);
+            sb.append("\n💡 SUGERENCIA: Use el lote ").append(sugerido.getNumeroLote());
+            if (sugerido.getFechaVencimiento() != null) {
+                sb.append(" (vence ").append(sugerido.getFechaVencimiento()).append(")");
+            }
+            
+       
+            int loteSeleccionado = JOptionPane.showOptionDialog(null, sb.toString(), 
+                "Seleccione el lote a consumir", 0, JOptionPane.QUESTION_MESSAGE, null,
+                new String[]{"Usar lote sugerido", "Elegir otro lote", "Cancelar"}, "Usar lote sugerido");
+            
+            Lote loteConsumir = null;
+            
+            if (loteSeleccionado == 0) {
+                loteConsumir = sugerido;
+            } else if (loteSeleccionado == 1) {
+                String[] opcionesLote = new String[lotes.size()];
+                for (int i = 0; i < lotes.size(); i++) {
+                    opcionesLote[i] = lotes.get(i).getNumeroLote();
+                }
+                int elegido = JOptionPane.showOptionDialog(null, "Seleccione el lote:", 
+                    "Elegir lote", 0, JOptionPane.QUESTION_MESSAGE, null, opcionesLote, opcionesLote[0]);
+                if (elegido == JOptionPane.CLOSED_OPTION) return;
+                loteConsumir = lotes.get(elegido);
+            } else {
+                return;
+            }
+            
+            String cantStr = JOptionPane.showInputDialog("Cantidad a consumir (Stock disponible de este lote: ???):");
             if (cantStr == null) return;
+            int cantidad = Integer.parseInt(cantStr);
             
             String obs = JOptionPane.showInputDialog("Observación (opcional):");
             if (obs == null) obs = "";
             
-            gestion.actualizarStock(insumo.getId(), Integer.parseInt(cantStr), "CONSUMO", 
-                                    usuarioLogueado.getId(), obs);
+           
+            gestion.actualizarStock(insumo.getId(), cantidad, "CONSUMO", usuarioLogueado.getId(), obs);
+            
+            JOptionPane.showMessageDialog(null, "✅ Consumo registrado.");
             
         } catch (NumberFormatException e) {
             JOptionPane.showMessageDialog(null, "❌ Error: Número inválido.");
@@ -239,16 +304,15 @@ public class Maqueta {
             
             int idCategoria = 0;
             
-            if (areaSeleccionada == 0) { 
-                idCategoria = 6; 
-            } else if (areaSeleccionada == 1) { 
+            if (areaSeleccionada == 0) {
+                idCategoria = 6;
+            } else if (areaSeleccionada == 1) {
                 String[] subcategorias = {"Rutina", "Especiales", "Controles y Calibradores", "Consumibles", "Volver"};
                 int subSeleccion = JOptionPane.showOptionDialog(null, 
                     "Seleccione la subcategoría:", "Registrar Ingreso", 0, 
                     JOptionPane.QUESTION_MESSAGE, null, subcategorias, subcategorias[0]);
                 
                 if (subSeleccion == 4 || subSeleccion == JOptionPane.CLOSED_OPTION) return;
-                
                 idCategoria = subSeleccion + 2;
             }
             
@@ -260,10 +324,10 @@ public class Maqueta {
                 return;
             }
             
-           
             String[] nombres = new String[insumos.size()];
             for (int i = 0; i < insumos.size(); i++) {
                 Insumo obj = insumos.get(i);
+                nombres[i] = obj.getId() + " - " + obj.getNombre() + " | Stock: " + obj.getStockActual();
             }
             
             int seleccion = JOptionPane.showOptionDialog(null, "Seleccione el insumo:", 
@@ -271,20 +335,42 @@ public class Maqueta {
             if (seleccion == JOptionPane.CLOSED_OPTION) return;
             
             Insumo insumo = insumos.get(seleccion);
-            String cantStr = JOptionPane.showInputDialog("Cantidad a ingresar (Stock actual: " + insumo.getStockActual() + "):");
+            String cantStr = JOptionPane.showInputDialog("Cantidad a ingresar:");
             if (cantStr == null) return;
-            
+            int cantidad = Integer.parseInt(cantStr);
+         
+            String numeroLote = JOptionPane.showInputDialog("Número de lote (opcional):");
+            if (numeroLote == null) numeroLote = "";
+
+            String fechaVencimientoStr = JOptionPane.showInputDialog("Fecha de vencimiento (opcional, formato dd-MM-yyyy):");
+            java.time.LocalDate fechaVencimiento = null;
+            if (fechaVencimientoStr != null && !fechaVencimientoStr.trim().isEmpty()) {
+                try {
+                    java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern("dd-MM-yyyy");
+                    fechaVencimiento = java.time.LocalDate.parse(fechaVencimientoStr, formatter);
+                } catch (Exception e) {
+                    JOptionPane.showMessageDialog(null, "❌ Formato de fecha incorrecto.");
+                }
+            }
+          
+                                  
             String obs = JOptionPane.showInputDialog("Observación (opcional):");
             if (obs == null) obs = "";
             
-            gestion.actualizarStock(insumo.getId(), Integer.parseInt(cantStr), "INGRESO", 
-                                    usuarioLogueado.getId(), obs);
+           
+            gestion.actualizarStock(insumo.getId(), cantidad, "INGRESO", usuarioLogueado.getId(), obs);
+            
+            
+            if (numeroLote != null && !numeroLote.trim().isEmpty()) {
+            	gestion.guardarLote(insumo.getId(), numeroLote, fechaVencimiento, cantidad);
+            }
+            
+            JOptionPane.showMessageDialog(null, "✅ Ingreso registrado correctamente.");
             
         } catch (NumberFormatException e) {
             JOptionPane.showMessageDialog(null, "❌ Error: Número inválido.");
         }
     }
-    
     public static void verHistorialCompleto() {
         GestionMovimientos gm = new GestionMovimientos();
         List<Movimiento> movimientos = gm.listarTodos();
@@ -346,7 +432,7 @@ public class Maqueta {
         JOptionPane.showMessageDialog(null, sb.toString());
     }
     
-    // ==================== GESTIÓN USUARIOS (ADMIN) ====================
+    
     
     public static void listarUsuarios() {
         ControllerUsuario controller = new ControllerUsuario();
@@ -421,7 +507,7 @@ public class Maqueta {
         }
     }
     
-    // ==================== CRUD INSUMOS (ADMIN) ====================
+    
     
     public static void agregarInsumo() {
         try {
@@ -528,7 +614,7 @@ public class Maqueta {
     }
     
     public static void menuEstadisticas() {
-        String[] opciones = {"Stock", "Stock Crítico", "Pedido Sugerido", "Historial Completo", "Volver"};
+        String[] opciones = {"Stock", "Stock Crítico", "Pedido Sugerido", "Historial Completo", "Consumo por período", "Volver"};
         int op;
         do {
             op = JOptionPane.showOptionDialog(null, "Estadísticas", "ADMIN", 
@@ -538,8 +624,69 @@ public class Maqueta {
                 case 1: stockCritico(); break;
                 case 2: pedidoSugerido(); break;
                 case 3: verHistorialCompleto(); break;
+                case 4: consumoPorPeriodo(); break;
             }
-        } while (op != 4);
+        } while (op != 5);
+    }
+    
+    public static void consumoPorPeriodo() {
+        
+        String desdeStr = JOptionPane.showInputDialog("📅 Fecha DESDE (dd-MM-yyyy):");
+        if (desdeStr == null) return;
+        String hastaStr = JOptionPane.showInputDialog("📅 Fecha HASTA (dd-MM-yyyy):");
+        if (hastaStr == null) return;
+        
+        try {
+            
+            java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern("dd-MM-yyyy");
+            java.time.LocalDate desde = java.time.LocalDate.parse(desdeStr, formatter);
+            java.time.LocalDate hasta = java.time.LocalDate.parse(hastaStr, formatter);
+            
+            GestionMovimientos gm = new GestionMovimientos();
+            List<Movimiento> movimientos = gm.listarPorRangoFechas(desde, hasta);
+            
+            if (movimientos.isEmpty()) {
+                JOptionPane.showMessageDialog(null, "No hay movimientos en ese período.");
+                return;
+            }
+            
+            long dias = java.time.temporal.ChronoUnit.DAYS.between(desde, hasta) + 1;
+            
+            GestionInsumos gi = new GestionInsumos();
+            
+            StringBuilder sb = new StringBuilder();
+            sb.append("📊 CONSUMO POR PERÍODO\n");
+            sb.append("Desde: ").append(desdeStr).append("  Hasta: ").append(hastaStr).append("\n");
+            sb.append("Días: ").append(dias).append("\n\n");
+            sb.append("INSUMO                | CANTIDAD | PROMEDIO/DÍA\n");
+            sb.append("-----------------------------------------------\n");
+            
+            List<Insumo> todosInsumos = gi.listar();
+            
+            for (Insumo insumo : todosInsumos) {
+                int cantidadTotal = 0;
+                
+                for (Movimiento m : movimientos) {
+                    if (m.getTipo().equals("CONSUMO") && m.getIdInsumo() == insumo.getId()) {
+                        cantidadTotal += m.getCantidad();
+                    }
+                }
+                
+                if (cantidadTotal > 0) {
+                    double promedio = (double) cantidadTotal / dias;
+                    String nombre = insumo.getNombre();
+                    if (nombre.length() > 20) {
+                        nombre = nombre.substring(0, 20);
+                    }
+                    sb.append(String.format("%-20s | %-8d | %.2f\n", nombre, cantidadTotal, promedio));
+                }
+            }
+            
+            JOptionPane.showMessageDialog(null, sb.toString());
+            
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(null, "❌ Error: Formato de fecha incorrecto. Use dd-MM-yyyy (ej: 15-03-2026)");
+        }
     }
     
     public static void menuGestionUsuarios() {
