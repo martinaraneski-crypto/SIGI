@@ -1,7 +1,6 @@
 package GUI;
 
 import javax.swing.JOptionPane;
-import com.toedter.calendar.JDateChooser;
 import java.util.List;
 import DLL.ControllerUsuario;
 import DLL.GestionInsumos;
@@ -11,7 +10,7 @@ import BLL.Movimiento;
 import BLL.RolUsuario;
 import BLL.Usuario;
 import BLL.Lote;
-import java.util.List;
+
 
 public class Maqueta {
 
@@ -221,9 +220,17 @@ public class Maqueta {
             
            
             List<Lote> lotes = gestion.obtenerLotesPorInsumo(insumo.getId());
-            
+
             if (lotes.isEmpty()) {
-                JOptionPane.showMessageDialog(null, "No hay lotes registrados para este insumo.");
+                
+                String cantStr = JOptionPane.showInputDialog("Cantidad a consumir (Stock: " + insumo.getStockActual() + "):");
+                if (cantStr == null) return;
+                int cantidad = Integer.parseInt(cantStr);
+                
+                String obs = JOptionPane.showInputDialog("Observación (opcional):");
+                if (obs == null) obs = "";
+                
+                gestion.actualizarStock(insumo.getId(), cantidad, "CONSUMO", usuarioLogueado.getId(), obs);
                 return;
             }
             
@@ -276,22 +283,27 @@ public class Maqueta {
                 return;
             }
             
-            String cantStr = JOptionPane.showInputDialog("Cantidad a consumir (Stock disponible de este lote: ???):");
+            String cantStr = JOptionPane.showInputDialog("Cantidad a consumir (Stock disponible de este lote: " + loteConsumir.getStockLote() + "):");
             if (cantStr == null) return;
             int cantidad = Integer.parseInt(cantStr);
             
             String obs = JOptionPane.showInputDialog("Observación (opcional):");
             if (obs == null) obs = "";
             
-           
-            gestion.actualizarStock(insumo.getId(), cantidad, "CONSUMO", usuarioLogueado.getId(), obs);
-            
-            JOptionPane.showMessageDialog(null, "✅ Consumo registrado.");
+            boolean ok = gestion.descontarDeLote(loteConsumir.getId(), cantidad);
+
+            if (ok) {
+                gestion.actualizarStock(insumo.getId(), cantidad, "CONSUMO", usuarioLogueado.getId(), obs);
+                JOptionPane.showMessageDialog(null, "✅ Consumo registrado del lote " + loteConsumir.getNumeroLote());
+            } else {
+                JOptionPane.showMessageDialog(null, "❌ No hay suficiente stock en el lote " + loteConsumir.getNumeroLote());
+            }
             
         } catch (NumberFormatException e) {
             JOptionPane.showMessageDialog(null, "❌ Error: Número inválido.");
         }
-    }
+    }  
+                        
     
     public static void registrarIngreso(Usuario usuarioLogueado) {
         try {

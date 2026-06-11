@@ -58,6 +58,7 @@ public class GestionInsumos implements ICRUD<Insumo> {
         }
     }
     
+    
     public List<Lote> obtenerLotesPorInsumo(int idInsumo) {
         List<Lote> lotes = new ArrayList<>();
         String sql = "SELECT * FROM lote WHERE id_insumo = ? AND stock_lote > 0 ORDER BY fecha_vencimiento ASC";
