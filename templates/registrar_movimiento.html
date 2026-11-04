@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>SIGI Web - Registrar Movimiento</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background-color: #f4f7f6;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .navbar-custom {
+            background-color: #0d6efd;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-custom px-4">
+        <a class="navbar-brand fw-bold d-flex align-items-center"
+            href="{{ url_for('admin_panel') if session.get('rol') == 'ADMIN' else url_for('operador_panel') }}">
+            <img src="{{ url_for('static', filename='css/sigi_logo.jpg') }}" alt="Logo" width="35" height="35"
+                class="rounded me-2 shadow-sm" style="object-fit: cover;">
+            SIGI Web - Movimientos
+        </a>
+        <div class="ms-auto text-white">
+            <span class="me-3"><i class="fa-solid fa-user-circle me-1"></i> {{ session.get('nombre_completo') }}
+                (<strong>{{ session.get('rol') }}</strong>)</span>
+            <a href="{{ url_for('admin_panel') if session.get('rol') == 'ADMIN' else url_for('operador_panel') }}"
+                class="btn btn-outline-light btn-sm me-2">Volver al Panel</a>
+            <a href="/logout" class="btn btn-light btn-sm text-primary">Cerrar Sesión</a>
+        </div>
+    </nav>
+
+    <div class="container py-5">
+        <div class="row mb-4">
+            <div class="col">
+                <h1 class="fw-bold text-dark"><i class="fa-solid fa-right-left me-2 text-info"></i> Registrar Movimiento
+                </h1>
+                <p class="text-muted">Registrar ingresos y consumos de reactivos con control automático de lotes (FeFO).
+                </p>
+                <hr>
+            </div>
+        </div>
+
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card p-4 bg-white">
+                    <form method="POST">
+                        <div class="mb-3">
+                            <label for="id_insumo" class="form-label fw-bold">Seleccionar Insumo</label>
+                            <select class="form-select" id="id_insumo" name="id_insumo" required
+                                onchange="mostrarSugerenciaFeFO()">
+                                <option value="" selected disabled>Elija un insumo de la sección...</option>
+                                {% for insumo in insumos %}
+                                <option value="{{ insumo.id_insumo }}">{{ insumo.nombre }} (Stock actual: {{
+                                    insumo.stock_actual }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        
+                        <div class="mb-3">
+                            <label for="categoria_ia" class="form-label fw-bold">Categoría (Autodetectada por IA)</label>
+                            <input type="text" class="form-control" id="categoria_ia" name="categoria_ia" readonly placeholder="Se completará automáticamente al elegir el insumo...">
+                        </div>
+
+                        
+                        <div id="panelFeFO" class="mb-3 p-3 bg-light border rounded d-none">
+                            <h6 class="fw-bold text-primary mb-2"><i class="fa-solid fa-boxes-stacked me-1"></i> Lotes
+                                Disponibles (FeFO)</h6>
+                            <div id="contenidoLotes" class="small text-muted"></div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="tipo" class="form-label fw-bold">Tipo de Movimiento</label>
+                            <select class="form-select" id="tipo" name="tipo" required onchange="controlarCamposTipo()">
+                                <option value="INGRESO">Ingreso (Aumenta stock)</option>
+                                <option value="CONSUMO" selected>Consumo (Disminuye stock)</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="cantidad" class="form-label fw-bold">Cantidad</label>
+                            <input type="number" class="form-control" id="cantidad" name="cantidad" required min="1"
+                                placeholder="Ej: 5">
+                        </div>
+
+                        <div class="mb-3" id="campoLoteContainer">
+                            <label for="lote" class="form-label fw-bold">Número de Lote (Opcional para Ingresos)</label>
+                            <input type="text" class="form-control" id="lote" name="lote" placeholder="Ej: LOT-9982">
+                        </div>
+
+                        <div class="mb-3" id="campoVencContainer">
+                            <label for="fecha_vencimiento" class="form-label fw-bold">Fecha de Vencimiento (Opcional
+                                para Ingresos)</label>
+                            <input type="date" class="form-control" id="fecha_vencimiento" name="fecha_vencimiento">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="observacion" class="form-label fw-bold">Observación (Opcional)</label>
+                            <textarea class="form-control" id="observacion" name="observacion" rows="2"
+                                placeholder="Detalles adicionales del movimiento..."></textarea>
+                        </div>
+
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{{ url_for('admin_panel') if session.get('rol') == 'ADMIN' else url_for('operador_panel') }}"
+                                class="btn btn-secondary">Cancelar</a>
+                            <button type="submit" class="btn btn-primary px-4 fw-semibold">Guardar Movimiento</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+    <div id="json-lotes" data-lotes='{{ lotes_por_insumo | tojson }}' style="display: none;"></div>
+
+    <script>
+        const lotesData = JSON.parse(document.getElementById('json-lotes').getAttribute('data-lotes'));
+
+        function mostrarSugerenciaFeFO() {
+            const selectInsumo = document.getElementById('id_insumo');
+            const idInsumo = selectInsumo.value;
+            const panel = document.getElementById('panelFeFO');
+            const contenido = document.getElementById('contenidoLotes');
+            const tipo = document.getElementById('tipo').value;
+
+            
+            if (selectInsumo.selectedIndex > 0) {
+                let nombreInsumo = selectInsumo.options[selectInsumo.selectedIndex].text;
+                let nombreLimpio = nombreInsumo.split('(')[0].trim();
+                
+                fetch('/clasificar_ia?nombre=' + encodeURIComponent(nombreLimpio))
+                    .then(response => response.json())
+                    .then(data => {
+                        document.getElementById('categoria_ia').value = data.categoria;
+                    })
+                    .catch(error => console.error('Error al clasificar con IA:', error));
+            } else {
+                document.getElementById('categoria_ia').value = '';
+            }
+            
+
+            if (!idInsumo || tipo !== 'CONSUMO') {
+                panel.classList.add('d-none');
+                return;
+            }
+
+            const lotes = lotesData[idInsumo] || [];
+            if (lotes.length === 0) {
+                panel.classList.remove('d-none');
+                contenido.innerHTML = '<span class="text-warning"><i class="fa-solid fa-triangle-exclamation me-1"></i> No hay lotes registrados con stock para este insumo. Se descontará de forma general.</span>';
+                return;
+            }
+
+            let html = '<ul class="mb-1 ps-3">';
+            lotes.forEach((l, index) => {
+                let badge = index === 0 ? ' <span class="badge bg-success">👉 SUGERIDO (FeFO)</span>' : '';
+                html += `<li><strong>Lote:</strong> ${l.numero} | <strong>Vence:</strong> ${l.vencimiento} | <strong>Stock en lote:</strong> ${l.stock} ${badge}</li>`;
+            });
+            html += '</ul>';
+
+            panel.classList.remove('d-none');
+            contenido.innerHTML = html;
+        }
+
+        function controlarCamposTipo() {
+            const tipo = document.getElementById('tipo').value;
+            mostrarSugerenciaFeFO();
+        }
+
+        document.getElementById('id_insumo').addEventListener('change', mostrarSugerenciaFeFO);
+        document.getElementById('tipo').addEventListener('change', mostrarSugerenciaFeFO);
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

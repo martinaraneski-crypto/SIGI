@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="p-5 mb-4 bg-white rounded-3 shadow-sm">
+    <h2 class="text-primary mb-3">📋 Pedidos Sugeridos (SIGI)</h2>
+    <p class="text-muted">Cálculo automático de insumos necesarios para alcanzar el stock deseado.</p>
+    <hr class="my-4">
+
+    {% if pedidos %}
+    <table class="table table-bordered table-hover">
+        <thead class="table-primary">
+            <tr>
+                <th>ID</th>
+                <th>Insumo</th>
+                <th>Stock Actual</th>
+                <th>Cantidad Sugerida a Pedir</th>
+                <th>Unidad</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for p in pedidos %}
+            <tr>
+                <td>{{ p.id }}</td>
+                <td><strong>{{ p.nombre }}</strong></td>
+                <td>{{ p.stock_actual }}</td>
+                <td><span class="badge bg-warning text-dark fs-6">{{ p.sugerencia }}</span></td>
+                <td>{{ p.unidad }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="alert alert-success" role="alert">
+        ✅ No hay insumos que necesiten pedido. Todos tienen stock suficiente.
+    </div>
+    {% endif %}
+
+    <a href="/index" class="btn btn-secondary mt-3">Volver al Panel</a>
+</div>
+{% endblock %}

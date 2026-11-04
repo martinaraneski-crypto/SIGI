@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>SIGI Web - Gestión de Insumos</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background-color: #f4f7f6;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .navbar-custom {
+            background-color: #198754;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-custom px-4">
+        <a class="navbar-brand fw-bold d-flex align-items-center" href="/admin">
+            <img src="{{ url_for('static', filename='sigi_logo.jpg') }}" alt="Logo" width="30" height="30"
+                class="rounded me-2 shadow-sm" style="object-fit: cover;">
+            SIGI Web - Insumos
+        </a>
+        <div class="ms-auto text-white">
+            <span class="me-3"><i class="fa-solid fa-user-shield me-1"></i> {{ session.get('nombre_completo') }}</span>
+            <a href="/panel" class="btn btn-outline-light btn-sm">Volver al Panel</a>
+            <a href="/logout" class="btn btn-danger btn-sm">Cerrar Sesión</a>
+        </div>
+    </nav>
+
+    <div class="container py-4">
+
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="row mb-3">
+            <div class="col-md-12">
+                {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        <div class="row mb-4 align-items-center">
+            <div class="col-md-6">
+                <h2 class="fw-bold text-dark"><i class="fa-solid fa-boxes-stacked me-2"></i>Gestión de Insumos</h2>
+                <p class="text-muted mb-0">Inventario actual de reactivos y materiales (Sección: <strong>{{
+                        session.get('seccion', 'Hematología') }}</strong>)</p>
+            </div>
+            <div class="col-md-6 text-md-end mt-3 mt-md-0">
+                {% if session.get('rol') == 'ADMIN' %}
+                <button class="btn btn-success fw-semibold" data-bs-toggle="modal" data-bs-target="#modalAgregarInsumo">
+                    <i class="fa-solid fa-plus me-1"></i> Agregar Insumo
+                </button>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card shadow-sm border-0 rounded-3 overflow-hidden">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-dark">
+                            <tr>
+                                <th class="py-3 ps-3">ID</th>
+                                <th class="py-3">Nombre</th>
+                                <th class="py-3">Stock Actual</th>
+                                <th class="py-3">Stock Mínimo</th>
+                                <th class="py-3">Stock Deseado</th>
+                                <th class="py-3">Unidad</th>
+                                <th class="py-3">Proveedor</th>
+                                {% if session.get('rol') == 'ADMIN' %}
+                                <th class="py-3 text-center">Acciones</th>
+                                {% endif %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if insumos %}
+                            {% for item in insumos %}
+                            <tr>
+                                <td class="ps-3 fw-semibold">#{{ item.id_insumo }}</td>
+                                <td>{{ item.nombre }}</td>
+                                <td>
+                                    {% set stock = item.stock_actual %}
+                                    {% set minimo = item.stock_minimo %}
+                                    {% set deseado = item.stock_deseado %}
+
+                                    {% if stock <= minimo %} <span class="badge bg-danger p-2" title="Stock Crítico">{{
+                                        stock }}</span>
+                                        {% elif stock >= deseado %}
+                                        <span class="badge bg-success p-2" title="Stock Óptimo">{{ stock }}</span>
+                                        {% else %}
+                                        <span class="badge bg-warning text-dark p-2" title="Stock Intermedio">{{ stock
+                                            }}</span>
+                                        {% endif %}
+                                </td>
+                                <td>{{ item.stock_minimo }}</td>
+                                <td>{{ item.stock_deseado }}</td>
+                                <td>{{ item.unidad_medida }}</td>
+                                <td>
+                                    {% if item.proveedores %}
+                                    {% for p in item.proveedores %}
+                                    <span class="badge bg-secondary">{{ p.nombre }}</span>
+                                    {% endfor %}
+                                    {% else %}
+                                    <span class="text-muted small">Sin proveedor</span>
+                                    {% endif %}
+                                </td>
+                                {% if session.get('rol') == 'ADMIN' %}
+                                <td class="text-center">
+                                    
+                                    <button class="btn btn-sm btn-outline-primary me-1" data-bs-toggle="modal"
+                                        data-bs-target="#modalModificar{{ item.id_insumo }}">
+                                        <i class="fa-solid fa-pen"></i>
+                                    </button>
+
+                                    
+                                    <form action="{{ url_for('eliminar_insumo', id_insumo=item.id_insumo) }}"
+                                        method="POST" class="d-inline">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger"
+                                            onclick="return confirm('¿Seguro que desea eliminar este insumo?')">
+                                            <i class="fa-solid fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                                {% endif %}
+                            </tr>
+
+                            
+                            <div class="modal fade" id="modalModificar{{ item.id_insumo }}" tabindex="-1"
+                                aria-hidden="true">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <form action="{{ url_for('modificar_insumo', id_insumo=item.id_insumo) }}"
+                                            method="POST">
+                                            <div class="modal-header bg-primary text-white">
+                                                <h5 class="modal-title"><i
+                                                        class="fa-solid fa-pen-to-square me-2"></i>Modificar Insumo: {{
+                                                    item.nombre }}</h5>
+                                                <button type="button" class="btn-close btn-close-white"
+                                                    data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body text-start">
+                                                <div class="mb-3">
+                                                    <label class="form-label fw-semibold">Nombre</label>
+                                                    <input type="text" class="form-control" name="nombre"
+                                                        value="{{ item.nombre }}" required>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label fw-semibold">Descripción</label>
+                                                    <input type="text" class="form-control" name="descripcion"
+                                                        value="{{ item.descripcion or '' }}">
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label fw-semibold">Stock Actual</label>
+                                                    <input type="number" class="form-control" name="stock_actual"
+                                                        value="{{ item.stock_actual }}" required>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label fw-semibold">Stock Mínimo</label>
+                                                    <input type="number" class="form-control" name="stock_minimo"
+                                                        value="{{ item.stock_minimo }}" required>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label fw-semibold">Stock Deseado</label>
+                                                    <input type="number" class="form-control" name="stock_deseado"
+                                                        value="{{ item.stock_deseado }}" required>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label fw-semibold">Unidad de Medida</label>
+                                                    <input type="text" class="form-control" name="unidad_medida"
+                                                        value="{{ item.unidad_medida }}" required>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label fw-semibold">Proveedor</label>
+                                                    <select name="id_proveedor" class="form-select">
+                                                        <option value="">-- Seleccionar Proveedor --</option>
+                                                        {% for prov in proveedores %}
+                                                        <option value="{{ prov.id_proveedor }}" {% if item.proveedores
+                                                            and item.proveedores[0].id_proveedor==prov.id_proveedor
+                                                            %}selected{% endif %}>
+                                                            {{ prov.nombre }}
+                                                        </option>
+                                                        {% endfor %}
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary"
+                                                    data-bs-dismiss="modal">Cancelar</button>
+                                                <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                            {% else %}
+                            <tr>
+                                <td colspan="8" class="text-center py-4 text-muted">No hay insumos registrados en la
+                                    sección actual.</td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+    {% if session.get('rol') == 'ADMIN' %}
+    <div class="modal fade" id="modalAgregarInsumo" tabindex="-1" aria-labelledby="modalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form action="{{ url_for('agregar_insumo') }}" method="POST">
+                    <div class="modal-header bg-success text-white">
+                        <h5 class="modal-title" id="modalLabel"><i class="fa-solid fa-plus-circle me-2"></i>Nuevo Insumo
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                            aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body text-start">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Nombre del Insumo</label>
+                            <input type="text" class="form-control" name="nombre" placeholder="Ej: Reactivo A" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Descripción</label>
+                            <input type="text" class="form-control" name="descripcion"
+                                placeholder="Descripción opcional">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Stock Actual</label>
+                            <input type="number" class="form-control" name="stock_actual" value="0" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Stock Mínimo</label>
+                            <input type="number" class="form-control" name="stock_minimo" value="0" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Stock Deseado</label>
+                            <input type="number" class="form-control" name="stock_deseado" value="0" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Unidad de Medida</label>
+                            <input type="text" class="form-control" name="unidad_medida"
+                                placeholder="Ej: Kg, Litros, Unidades" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Proveedor</label>
+                            <select name="id_proveedor" class="form-select">
+                                <option value="">-- Seleccionar Proveedor --</option>
+                                {% for prov in proveedores %}
+                                <option value="{{ prov.id_proveedor }}">{{ prov.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-success">Guardar Insumo</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

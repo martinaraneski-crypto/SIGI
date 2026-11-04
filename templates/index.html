@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="p-5 mb-4 bg-white rounded-3 shadow-sm">
+    <h1 class="display-5 fw-bold text-primary">Sistema Integral de Gestion de Insumos (SIGI)</h1>
+    <p class="fs-4 col-md-10 text-muted">Panel de administración para el control de stock y reactivos de laboratorio</p>
+    <hr class="my-4">
+
+    
+    {% if alertas %}
+    <div class="alert alert-danger" role="alert">
+        <h4 class="alert-heading">⚠️ ¡Atención! Hay insumos en stock crítico:</h4>
+        <ul>
+            {% for item in alertas %}
+                <li><strong>{{ item.nombre }}</strong> - Stock actual: {{ item.stock_actual }} {{ item.unidad_medida }} (Mínimo requerido: {{ item.stock_minimo }})</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    <div class="row text-center mt-4">
+        <div class="col-md-4">
+            <div class="card p-3 shadow-sm mb-3">
+                <h3>Insumos</h3>
+                <p>Gestión del inventario, áreas (Hematología y Hemostasia) y control de stock disponible.</p>
+                <a href="/insumos" class="btn btn-outline-primary">Ver Insumos</a>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card p-3 shadow-sm mb-3">
+                <h3>Proveedores</h3>
+                <p>Administración del registro de proveedores y laboratorios asociados.</p>
+                <a href="/proveedores" class="btn btn-outline-primary">Ver Proveedores</a>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card p-3 shadow-sm mb-3">
+                <h3>Pedidos</h3>
+                <p>Registro y seguimiento de reposición de insumos (Cálculo de sugeridos).</p>
+                <a href="/pedidos" class="btn btn-outline-primary">Ver Pedidos</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

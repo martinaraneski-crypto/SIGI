@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="p-5 mb-4 bg-white rounded-3 shadow-sm">
+    <h2 class="text-primary mb-3">📦 Gestión de Insumos y Reactivos (SIGI)</h2>
+    <p class="text-muted">Inventario actual del laboratorio de análisis clínicos (Sección: <strong>{{
+            session.get('seccion', 'Hematología') }}</strong>).</p>
+    <hr class="my-4">
+
+    <table class="table table-striped table-hover align-middle">
+        <thead class="table-dark">
+            <tr>
+                <th>ID</th>
+                <th>Nombre del Insumo / Reactivo</th>
+                <th>Descripción</th>
+                <th>Stock Actual</th>
+                <th>Stock Mínimo</th>
+                <th>Stock Deseado</th>
+                <th>Unidad</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if insumos %}
+            {% for item in insumos %}
+            <tr>
+                <td>#{{ item.id_insumo }}</td>
+                <td><strong>{{ item.nombre }}</strong></td>
+                <td>{{ item.descripcion or '-' }}</td>
+                <td>
+                    {% set stock = item.stock_actual %}
+                    {% set minimo = item.stock_minimo %}
+                    {% set deseado = item.stock_deseado %}
+
+                    {% if stock <= minimo %} <span class="badge bg-danger p-2" title="Stock Crítico">{{ stock }}
+                        (Crítico)</span>
+                        {% elif stock >= deseado %}
+                        <span class="badge bg-success p-2" title="Stock Óptimo">{{ stock }}</span>
+                        {% else %}
+                        <span class="badge bg-warning text-dark p-2" title="Stock Intermedio">{{ stock }}</span>
+                        {% endif %}
+                </td>
+                <td>{{ item.stock_minimo }}</td>
+                <td>{{ item.stock_deseado }}</td>
+                <td>{{ item.unidad_medida }}</td>
+            </tr>
+            {% endfor %}
+            {% else %}
+            <tr>
+                <td colspan="7" class="text-center py-4 text-muted">No hay insumos registrados en esta sección.</td>
+            </tr>
+            {% endif %}
+        </tbody>
+    </table>
+
+    <a href="/panel" class="btn btn-secondary mt-3">Volver al Panel</a>
+</div>
+{% endblock %}

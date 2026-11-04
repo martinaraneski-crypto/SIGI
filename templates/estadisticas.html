@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>SIGI Web - Estadísticas</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background-color: #f4f7f6;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .navbar-custom {
+            background-color: #0d6efd;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-custom px-4">
+        <a class="navbar-brand fw-bold d-flex align-items-center" href="/admin_panel">
+            <img src="{{ url_for('static', filename='sigi_logo.jpg') }}" alt="Logo" width="35" height="35"
+                class="rounded me-2 shadow-sm" style="object-fit: cover;">
+            SIGI Web - Estadísticas
+        </a>
+        <div class="ms-auto text-white">
+            <span class="me-3"><i class="fa-solid fa-user-circle me-1"></i> {{ session.get('nombre_completo') }}
+                (<strong>{{ session.get('rol') }}</strong>)</span>
+            <a href="/panel" class="btn btn-outline-light btn-sm me-2">Volver al Panel</a>
+            <a href="/logout" class="btn btn-light btn-sm text-primary">Cerrar Sesión</a>
+        </div>
+    </nav>
+
+    <div class="container py-5">
+        <div class="row mb-4">
+            <div class="col">
+                <h1 class="fw-bold text-dark">Estadísticas del Sistema</h1>
+                <p class="text-muted">Vista general de control administrativo e inventario del laboratorio SIGI</p>
+                <hr>
+            </div>
+        </div>
+
+        
+        <div class="row g-4 mb-4">
+            <div class="col-md-12">
+                <div class="card p-4 bg-white">
+                    <h4 class="fw-bold mb-3 text-primary"><i class="fa-solid fa-calendar-days me-2"></i> Consumo de
+                        Insumos por Período</h4>
+                    <form method="POST" action="{{ url_for('estadisticas') }}" class="row g-3 align-items-end mb-4">
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Fecha DESDE:</label>
+                            <input type="date" class="form-control" name="fecha_desde" value="{{ fecha_desde or '' }}"
+                                required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Fecha HASTA:</label>
+                            <input type="date" class="form-control" name="fecha_hasta" value="{{ fecha_hasta or '' }}"
+                                required>
+                        </div>
+                        <div class="col-md-4">
+                            <button type="submit" class="btn btn-primary w-100"><i class="fa-solid fa-filter me-1"></i>
+                                Consultar Período</button>
+                        </div>
+                    </form>
+
+                    {% if fecha_desde and fecha_hasta %}
+                    <h5 class="fw-bold text-dark mt-3">Resultados del {{ fecha_desde }} al {{ fecha_hasta }}:</h5>
+                    <div class="table-responsive">
+                        <table class="table table-striped align-middle mb-0">
+                            <thead class="table-secondary">
+                                <tr>
+                                    <th>Insumo</th>
+                                    <th>Cantidad Total Consumida</th>
+                                    <th>Promedio Diario</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if consumos_periodo %}
+                                {% for row in consumos_periodo %}
+                                <tr>
+                                    <td class="fw-semibold">{{ row.insumo }}</td>
+                                    <td>{{ row.cantidad }}</td>
+                                    <td>{{ row.promedio }}</td>
+                                </tr>
+                                {% endfor %}
+                                {% else %}
+                                <tr>
+                                    <td colspan="3" class="text-center text-muted py-3">No hay registros de consumo en
+                                        el período seleccionado.</td>
+                                </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        
+        <div class="row g-4">
+            <div class="col-md-12">
+                <div class="card p-4 bg-white">
+                    <h4 class="fw-bold mb-3 text-danger"><i class="fa-solid fa-triangle-exclamation me-2"></i> Insumos
+                        con Stock Crítico o Mínimo</h4>
+
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Insumo</th>
+                                    <th>Stock Actual</th>
+                                    <th>Stock Mínimo</th>
+                                    <th>Stock Deseado</th>
+                                    <th>Unidad</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if insumos_criticos %}
+                                {% for item in insumos_criticos %}
+                                <tr>
+                                    <td class="fw-bold">#{{ item.id_insumo }}</td>
+                                    <td>{{ item.nombre }}</td>
+                                    <td><span class="badge bg-danger fs-6">{{ item.stock_actual }}</span></td>
+                                    <td>{{ item.stock_minimo }}</td>
+                                    <td>{{ item.stock_deseado }}</td>
+                                    <td>{{ item.unidad_medida }}</td>
+                                </tr>
+                                {% endfor %}
+                                {% else %}
+                                <tr>
+                                    <td colspan="6" class="text-center text-success py-3">
+                                        <i class="fa-solid fa-circle-check me-1"></i> No hay insumos en nivel crítico
+                                        actualmente.
+                                    </td>
+                                </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="mt-4">
+                        <a href="/panel" class="btn btn-secondary">Volver al Panel de Administración</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+
+</html>
