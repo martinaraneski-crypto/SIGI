@@ -29,8 +29,7 @@
 
     <nav class="navbar navbar-expand-lg navbar-dark navbar-custom px-4">
         <a class="navbar-brand fw-bold d-flex align-items-center" href="/admin_panel">
-            <img src="{{ url_for('static', filename='sigi_logo.jpg') }}" alt="Logo" width="35" height="35"
-                class="rounded me-2 shadow-sm" style="object-fit: cover;">
+            <img src="{{ S3_URL }}sigi_logo.jpg" class="rounded me-2 shadow-sm" style="object-fit: cover; width: 45px; height: 45px;">
             SIGI Web - Estadísticas
         </a>
         <div class="ms-auto text-white">
@@ -114,7 +113,7 @@
                     <h4 class="fw-bold mb-3 text-danger"><i class="fa-solid fa-triangle-exclamation me-2"></i> Insumos
                         con Stock Crítico o Mínimo</h4>
 
-                    <div class="table-responsive">
+                    <div class="table-responsive mb-4">
                         <table class="table table-hover align-middle mb-0">
                             <thead class="table-light">
                                 <tr>
@@ -150,8 +149,69 @@
                         </table>
                     </div>
 
-                    <div class="mt-4">
-                        <a href="/panel" class="btn btn-secondary">Volver al Panel de Administración</a>
+                    
+                    <div class="d-flex flex-wrap justify-content-between align-items-center pt-3 border-top gap-3">
+                        <a href="/pedido-sugerido" class="btn btn-danger px-4 py-2 fw-semibold">
+                            <i class="fa-solid fa-clipboard-list me-2"></i> Ver Pedido Sugerido
+                        </a>
+                        
+                    </div>
+                    
+                </div>
+            </div>
+        </div>
+        
+        <div class="row g-4 mb-4">
+            <div class="col-md-12">
+                <div class="card p-4 bg-white border-top border-primary border-4">
+                    <h4 class="fw-bold mb-2 text-primary">
+                        <i class="fa-solid fa-brain me-2"></i> Proyección de Quiebre de Stock (Inteligencia Artificial)
+                    </h4>
+                    <p class="text-muted small mb-3">Modelo de regresión lineal aplicado sobre el historial de movimientos de consumo (<code>scikit-learn</code>).</p>
+
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Insumo</th>
+                                    <th>Stock Actual</th>
+                                    <th>Stock Mínimo</th>
+                                    <th>Días Restantes Estimados (IA)</th>
+                                    <th>Estado Predictivo</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if predicciones %}
+                                {% for item in predicciones %}
+                                <tr>
+                                    <td class="fw-semibold">{{ item.nombre }}</td>
+                                    <td>{{ item.stock_actual }}</td>
+                                    <td>{{ item.stock_minimo }}</td>
+                                    <td>
+                                        {% if item.dias_restantes > 500 %}
+                                            <span class="text-muted">Estable / Sin consumo activo</span>
+                                        {% else %}
+                                            <strong>~{{ item.dias_restantes }} días</strong>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if item.estado_ia == 'Crítico' %}
+                                            <span class="badge bg-danger fs-6">⚠️ Riesgo de Quiebre</span>
+                                        {% else %}
+                                            <span class="badge bg-success fs-6">✅ Estable</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                                {% else %}
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted py-3">
+                                        No hay insumos suficientes para realizar la proyección predictiva.
+                                    </td>
+                                </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
