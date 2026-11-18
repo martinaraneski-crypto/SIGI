@@ -23,10 +23,9 @@
 
     <nav class="navbar navbar-expand-lg navbar-dark navbar-custom px-4">
         <a class="navbar-brand fw-bold d-flex align-items-center" href="/admin">
-            <img src="{{ url_for('static', filename='sigi_logo.jpg') }}" alt="Logo" width="30" height="30"
-                class="rounded me-2 shadow-sm" style="object-fit: cover;">
-            SIGI Web - Insumos
-        </a>
+    <img src="{{ S3_URL }}sigi_logo.jpg" class="rounded me-2 shadow-sm" style="width: 40px; height: 40px; object-fit: cover;" alt="Logo">
+    SIGI Web - Insumos
+</a>
         <div class="ms-auto text-white">
             <span class="me-3"><i class="fa-solid fa-user-shield me-1"></i> {{ session.get('nombre_completo') }}</span>
             <a href="/panel" class="btn btn-outline-light btn-sm">Volver al Panel</a>
