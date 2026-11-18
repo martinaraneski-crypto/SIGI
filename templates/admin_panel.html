@@ -35,8 +35,7 @@
 
     <nav class="navbar navbar-expand-lg navbar-dark navbar-custom px-4">
         <a class="navbar-brand fw-bold d-flex align-items-center" href="/seleccion-seccion">
-            <img src="{{ url_for('static', filename='sigi_logo.jpg') }}" alt="Logo" width="35" height="35"
-                class="rounded me-2 shadow-sm" style="object-fit: cover;">
+            <img src="{{ S3_URL }}sigi_logo.jpg" alt="Logo" width="35" height="35" class="rounded me-2 shadow-sm" style="object-fit: cover;">
             SIGI Web - Administrador
         </a>
         <div class="ms-auto text-white">
@@ -45,13 +44,11 @@
         </div>
     </nav>
 
-    <div class="container py-4">
-        <div class="row mb-3">
+    <div class="container py-2">
+       
+        <div class="row mb-2">
             <div class="col-md-12 text-center">
-                <h1 class="fw-bold text-dark fs-2">Panel de Control (Administración)</h1>
-                <p class="text-muted small">Gestión integral de stock, insumos, estadísticas y usuarios del laboratorio
-                </p>
-                <hr class="w-25 mx-auto my-2">
+                <h1 class="fw-bold text-dark fs-2 mb-0">Panel de Control (Administrador)</h1>
             </div>
         </div>
 
@@ -65,7 +62,6 @@
         </div>
         {% endif %}
 
-        
         {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
         <div class="row mb-3">
@@ -81,15 +77,38 @@
         {% endif %}
         {% endwith %}
 
-        
+        <!-- Barra compacta de Feriados (API Externa) -->
+        <div class="row mb-2">
+            <div class="col-12">
+                <div class="alert alert-light border shadow-sm d-flex align-items-center justify-content-between flex-wrap py-2 px-3" style="border-radius: 10px;">
+                    <div class="d-flex align-items-center flex-wrap">
+                        <i class="fa-solid fa-calendar-check text-primary fs-5 me-2"></i>
+                        <span class="fw-bold text-dark small me-3">Próximos Feriados (API Externa):</span>
+                        <div class="d-flex gap-2 flex-wrap mt-1 mt-md-0">
+                            {% if feriados %}
+                                {% for f in feriados %}
+                                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-2 py-1">
+                                    <strong>{{ f.fecha }}:</strong> {{ f.titulo }} ({{ f.tipo }})
+                                </span>
+                                {% endfor %}
+                            {% else %}
+                                <span class="text-muted small">No hay feriados próximos registrados.</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <span class="text-muted small mt-1 mt-md-0" style="font-size: 0.75rem;"><i class="fa-solid fa-circle-info me-1"></i>Optimización de stock</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Primera Fila de Tarjetas del Menú -->
         <div class="row g-3 justify-content-center mb-3">
             <div class="col-md-4">
                 <div class="card card-menu text-center p-3 h-100 shadow-sm">
                     <div class="card-body py-2">
                         <i class="fa-solid fa-boxes-stacked text-primary fs-2 mb-2"></i>
                         <h5 class="fw-bold text-dark">Gestionar Insumos</h5>
-                        <p class="text-muted small mb-3">Listar, agregar, modificar y buscar insumos en el inventario.
-                        </p>
+                        <p class="text-muted small mb-3">Listar, agregar, modificar y buscar insumos en el inventario.</p>
                         <a href="/gestion-insumos" class="btn btn-primary w-100 fw-semibold btn-sm">Acceder</a>
                     </div>
                 </div>
@@ -100,8 +119,7 @@
                     <div class="card-body py-2">
                         <i class="fa-solid fa-chart-pie text-success fs-2 mb-2"></i>
                         <h5 class="fw-bold text-dark">Estadísticas</h5>
-                        <p class="text-muted small mb-3">Reportes de stock actual, crítico, pedidos sugeridos y
-                            consumos.</p>
+                        <p class="text-muted small mb-3">Reportes de stock actual, crítico, pedidos sugeridos y consumos.</p>
                         <a href="/estadisticas" class="btn btn-success w-100 fw-semibold btn-sm">Acceder</a>
                     </div>
                 </div>
@@ -112,26 +130,22 @@
                     <div class="card-body py-2">
                         <i class="fa-solid fa-users-gear text-warning fs-2 mb-2"></i>
                         <h5 class="fw-bold text-dark">Gestionar Usuarios</h5>
-                        <p class="text-muted small mb-3">Control de roles, permisos y activación de cuentas de
-                            operadores.</p>
-                        <a href="/gestion-usuarios"
-                            class="btn btn-warning text-white w-100 fw-semibold btn-sm">Acceder</a>
+                        <p class="text-muted small mb-3">Control de roles, permisos y activación de cuentas de operadores.</p>
+                        <a href="/gestion-usuarios" class="btn btn-warning text-white w-100 fw-semibold btn-sm">Acceder</a>
                     </div>
                 </div>
             </div>
         </div>
 
-        
+        <!-- Segunda Fila de Tarjetas del Menú -->
         <div class="row g-3 justify-content-center">
             <div class="col-md-4">
                 <div class="card card-menu text-center p-3 h-100 shadow-sm">
                     <div class="card-body py-2">
                         <i class="fa-solid fa-right-left text-info fs-2 mb-2"></i>
                         <h5 class="fw-bold text-dark">Registrar Movimiento</h5>
-                        <p class="text-muted small mb-3">Registrar ingresos y consumos de reactivos con número de lote.
-                        </p>
-                        <a href="/registrar-movimiento"
-                            class="btn btn-info text-white w-100 fw-semibold btn-sm">Acceder</a>
+                        <p class="text-muted small mb-3">Registrar ingresos y consumos de reactivos con número de lote.</p>
+                        <a href="/registrar-movimiento" class="btn btn-info text-white w-100 fw-semibold btn-sm">Acceder</a>
                     </div>
                 </div>
             </div>
@@ -141,10 +155,8 @@
                     <div class="card-body py-2">
                         <i class="fa-solid fa-clock-rotate-left text-warning fs-2 mb-2"></i>
                         <h5 class="fw-bold text-dark">Ver Movimientos</h5>
-                        <p class="text-muted small mb-3">Consultar el historial general de movimientos del laboratorio.
-                        </p>
-                        <a href="{{ url_for('ver_movimientos') }}"
-                            class="btn btn-warning text-white w-100 fw-semibold btn-sm">Acceder</a>
+                        <p class="text-muted small mb-3">Consultar el historial general de movimientos del laboratorio.</p>
+                        <a href="{{ url_for('ver_movimientos') }}" class="btn btn-warning text-white w-100 fw-semibold btn-sm">Acceder</a>
                     </div>
                 </div>
             </div>
