@@ -1,55 +1,40 @@
+import os
 from datetime import date, datetime
-from authlib.integrations.flask_client import OAuth
+from dotenv import load_dotenv
 from flask import Flask, render_template, request, redirect, url_for, session, flash
+from authlib.integrations.flask_client import OAuth
 from models import db, Usuario, Proveedor, Categoria, Insumo, Movimiento, Lote
 from werkzeug.utils import secure_filename
 import bcrypt
 import boto3
-import requests  
+import requests
+import numpy as np
+from sklearn.linear_model import LinearRegression
+
+load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = 'clave_secreta_sigi_web'
 
-
+app.secret_key = os.environ.get('SECRET_KEY')
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:@localhost/sigi'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-app.config['GOOGLE_CLIENT_ID'] = 'tu-client-id-de-google'
-app.config['GOOGLE_CLIENT_SECRET'] = 'tu-client-secret'
-
 
 oauth = OAuth(app)
-oauth.register(
+google = oauth.register(
     name='google',
-    client_id=app.config['GOOGLE_CLIENT_ID'],
-    client_secret=app.config['GOOGLE_CLIENT_SECRET'],
-    server_metadata_url=(
-        'https://accounts.google.com/.well-known/openid-configuration'
-    ),
-    client_kwargs={'scope': 'openid email profile'},
+    client_id=os.environ.get('GOOGLE_CLIENT_ID'),
+    client_secret=os.environ.get('GOOGLE_CLIENT_SECRET'),
+    server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
+    client_kwargs={
+        'scope': 'openid email profile'
+    }
 )
 
 db.init_app(app)
 
 with app.app_context():
     db.create_all()
-
-
-
-@app.route('/login/google')
-def google_login():
-    redirect_uri = url_for('google_authorize', _external=True)
-    return oauth.google.authorize_redirect(redirect_uri)
-
-
-@app.route('/login/google/authorize')
-def google_authorize():
-    token = oauth.google.authorize_access_token()
-    user_info = oauth.google.parse_id_token(token, None)
-    session['user'] = user_info
-    return redirect(url_for('index'))
-
-
 
 @app.route('/')
 def index():
@@ -149,7 +134,11 @@ def fijar_seccion(seccion):
 def admin_panel():
     if 'usuario' not in session or session.get('rol') != 'ADMIN':
         return redirect(url_for('login'))
-    return render_template('admin_panel.html')
+    
+   
+    feriados = obtener_proximos_feriados()
+    
+    return render_template('admin_panel.html', feriados=feriados)
 
 
 @app.route('/operador_panel')
@@ -172,7 +161,6 @@ def panel_general():
     return redirect(url_for('operador_panel'))
 
 
-
 def obtener_insumos_seccion():
     seccion_actual = session.get('seccion', 'Hematología')
     cat_principal = Categoria.query.filter_by(nombre=seccion_actual).first()
@@ -185,7 +173,6 @@ def obtener_insumos_seccion():
     ids_categorias.extend([sub.id_categoria for sub in subcats])
     
     return Insumo.query.filter(Insumo.id_categoria.in_(ids_categorias)).all()
-
 
 
 @app.route('/gestion-insumos', methods=['GET', 'POST'])
@@ -282,7 +269,6 @@ def eliminar_insumo(id_insumo):
         
     return redirect(url_for('gestion_insumos'))
 
-
 @app.route('/ver-stock')
 @app.route('/ver_stock')
 @app.route('/insumos')
@@ -292,8 +278,6 @@ def ver_stock():
         return redirect(url_for('login'))
     lista_insumos = obtener_insumos_seccion()
     return render_template('insumos.html', insumos=lista_insumos)
-
-
 
 @app.route('/estadisticas', methods=['GET', 'POST'])
 def estadisticas():
@@ -340,6 +324,57 @@ def estadisticas():
         except Exception as e:
             flash(f'Error en las fechas: {e}', 'danger')
 
+    
+    predicciones = []
+    for insumo in insumos_seccion:
+       
+        movimientos = Movimiento.query.filter_by(id_insumo=insumo.id_insumo, tipo='CONSUMO').order_by(Movimiento.fecha.asc()).all()
+        
+        dias_estimados_agotamiento = 999 
+        estado_ia = 'Estable'
+        
+        if len(movimientos) >= 2:
+            
+            fecha_base = movimientos[0].fecha
+            X_dias = []
+            y_acumulado = []
+            total_consumido_acum = 0
+            
+            for m in movimientos:
+                delta_dias = (m.fecha - fecha_base).days
+                total_consumido_acum += m.cantidad
+                X_dias.append([delta_dias])
+                y_acumulado.append(total_consumido_acum)
+            
+            X = np.array(X_dias)
+            y = np.array(y_acumulado)
+            
+            modelo = LinearRegression()
+            modelo.fit(X, y)
+            
+            
+            consumo_diario_estimado = modelo.coef_[0]
+            
+            if consumo_diario_estimado > 0 and insumo.stock_actual > 0:
+                dias_estimados_agotamiento = int(insumo.stock_actual / consumo_diario_estimado)
+        else:
+           
+            if insumo.stock_minimo > 0 and insumo.stock_actual <= insumo.stock_minimo:
+                dias_estimados_agotamiento = 2 
+            else:
+                dias_estimados_agotamiento = 15 
+                
+        if dias_estimados_agotamiento <= 5:
+            estado_ia = 'Crítico'
+            
+        predicciones.append({
+            'nombre': insumo.nombre,
+            'stock_actual': insumo.stock_actual,
+            'stock_minimo': insumo.stock_minimo,
+            'dias_restantes': max(0, dias_estimados_agotamiento),
+            'estado_ia': estado_ia
+        })
+
     return render_template(
         'estadisticas.html',
         total_insumos=total_insumos,
@@ -348,8 +383,10 @@ def estadisticas():
         total_movimientos=total_movimientos,
         consumos_periodo=consumos_periodo,
         fecha_desde=fecha_desde,
-        fecha_hasta=fecha_hasta
+        fecha_hasta=fecha_hasta,
+        predicciones=predicciones
     )
+
 
 
 @app.route('/gestion-usuarios')
@@ -359,7 +396,6 @@ def gestion_usuarios():
         return redirect(url_for('login'))
     lista_usuarios = Usuario.query.all()
     return render_template('gestion_usuarios.html', usuarios=lista_usuarios)
-
 
 
 @app.route('/registrar-movimiento', methods=['GET', 'POST'])
@@ -478,12 +514,13 @@ def ver_movimientos():
     id_usuario_actual = Usuario.query.filter_by(nombre_usuario=session.get('usuario')).first()
     id_usr = id_usuario_actual.id_usuario if id_usuario_actual else None
     
-    query = Movimiento.query.filter(Movimiento.id_insumo.in_(ids_insumos)) if ids_insumos else Movimiento.query.filter(False)
+    query = Movimiento.query.order_by(Movimiento.id_movimiento.desc()).filter(Movimiento.id_insumo.in_(ids_insumos)) if ids_insumos else Movimiento.query.order_by(Movimiento.id_movimiento.desc()).filter(False)
     
     if rol == 'ADMIN':
         lista_movimientos = query.all()
     else:
         lista_movimientos = query.filter(Movimiento.id_usuario == id_usr).all()
+
         
     return render_template('movimientos.html', movimientos=lista_movimientos)
 
@@ -513,7 +550,7 @@ def categorias():
         nombre = request.form.get('nombre')
         descripcion = request.form.get('descripcion')
         
-        nueva = Categoria(nombre=nombre, descrpcion=descripcion)
+        nueva = Categoria(nombre=nombre, descripcion=descripcion)
         db.session.add(nueva)
         db.session.commit()
         return redirect(url_for('categorias'))
@@ -547,7 +584,9 @@ def toggle_estado_usuario(id_usuario):
     
     usuario = Usuario.query.get_or_404(id_usuario)
     
-    if usuario.id_usuario == session.get('id_usuario'):
+    
+    usuario_actual = Usuario.query.filter_by(nombre_usuario=session.get('usuario')).first()
+    if usuario_actual and usuario.id_usuario == usuario_actual.id_usuario:
         flash('No podés desactivar tu propia cuenta de administrador.', 'warning')
         return redirect(url_for('gestion_usuarios'))
 
@@ -559,11 +598,9 @@ def toggle_estado_usuario(id_usuario):
     
     return redirect(url_for('gestion_usuarios'))
 
-
-
 AWS_ACCESS_KEY_ID = 'tu-access-key'
 AWS_SECRET_ACCESS_KEY = 'tu-secret-key'
-AWS_BUCKET_NAME = 'sigi-archivos-bucket'
+AWS_BUCKET_NAME = 'sigi-imagenes'
 AWS_REGION = 'us-east-1'
 
 
@@ -582,59 +619,96 @@ def subir_archivo_a_s3(file):
 
 
 
-def consultar_datos_pubchem(nombre_reactivo):
-    """Consulta la API pública de PubChem para traer fórmula y peso molecular."""
-    url = f'https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/{nombre_reactivo}/property/MolecularFormula,MolecularWeight/JSON'
+@app.context_processor
+def inject_s3_url():
+    return {
+        'S3_URL': 'https://sigi-imagenes.s3.amazonaws.com/'
+    }
+
+@app.route('/pedido-sugerido')
+def pedido_sugerido():
+    insumos = Insumo.query.all()
+    
+    lista_sugeridos = []
+    for insumo in insumos:
+        sugerencia = insumo.stock_deseado - insumo.stock_actual
+        if sugerencia > 0:
+            lista_sugeridos.append({
+                'id': insumo.id_insumo,
+                'nombre': insumo.nombre,
+                'stock_actual': insumo.stock_actual,
+                'sugerencia': sugerencia,
+                'unidad_medida': insumo.unidad_medida
+            })
+            
+    return render_template('pedido_sugerido.html', insumos=lista_sugeridos)
+
+def obtener_proximos_feriados():
     try:
-        respuesta = requests.get(url, timeout=5)
-        if respuesta.status_code == 200:
-            data = respuesta.json()
-            propiedades = data['PropertyTable']['Properties'][0]
-            return {
-                'formula': propiedades.get('MolecularFormula', 'No disponible'),
-                'peso_molecular': propiedades.get('MolecularWeight', 'No disponible')
-            }
+        anio = datetime.now().year
+        
+        url = f"https://date.nager.at/api/v3/PublicHolidays/{anio}/AR"
+        response = requests.get(url, timeout=5)
+        
+        if response.status_code == 200:
+            feriados = response.json()
+            hoy = datetime.now().date()
+            proximos = []
+            for f in feriados:
+                fecha_str = f.get('date')
+                if fecha_str:
+                    fecha_feriado = datetime.strptime(fecha_str, '%Y-%m-%d').date()
+                    if fecha_feriado >= hoy:
+                        proximos.append({
+                            'fecha': fecha_str,
+                            'titulo': f.get('localName'), 
+                            'tipo': 'Nacional'
+                        })
+            if proximos:
+                print(">>> ¡CONEXIÓN REAL EXITOSA con Nager.Date API!")
+                return proximos[:2]
     except Exception as e:
-        print(f'Error consultando PubChem: {e}')
-    return None
+        print(f">>> Error de conexión con la API: {e}")
+    
+    return []
 
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.linear_model import LogisticRegression
-from sklearn.pipeline import make_pipeline
-from flask import jsonify, request
 
-def clasificar_insumo_ia(nombre_o_descripcion):
-    """Modelo de scikit-learn para clasificación automática de insumos"""
-    X_train = [
-        "suero control normal hemostasia",
-        "reactivo de ttpw coagulacion",
-        "solucion fisiologica salina",
-        "plasma control anormal",
-        "tapon buffer fosfato",
-        "reactivo de tiempo de protrombina",
-        "calibrador multiparametrico"
-    ]
-    y_train = [
-        "Control",
-        "Reactivo",
-        "Solución/Buffer",
-        "Control",
-        "Solución/Buffer",
-        "Reactivo",
-        "Calibrador"
-    ]
-    modelo_ia = make_pipeline(TfidfVectorizer(), LogisticRegression())
-    modelo_ia.fit(X_train, y_train)
-    categoria_predicha = modelo_ia.predict([nombre_o_descripcion])
-    return categoria_predicha[0]
+@app.route('/login/google')
+def login_google():
+    redirect_uri = url_for('authorize_google', _external=True)
+    return google.authorize_redirect(redirect_uri)
 
-@app.route('/clasificar_ia')
-def clasificar_ia_route():
-    nombre = request.args.get('nombre', '')
-    categoria_predicha = clasificar_insumo_ia(nombre)
-    return jsonify({'categoria': categoria_predicha})
 
+@app.route('/auth/google/callback')
+def authorize_google():
+    token = google.authorize_access_token()
+    user_info = token.get('userinfo')
+    
+    if user_info:
+        email = user_info['email']
+        nombre = user_info['name']
+        
+        
+        usuario_bd = Usuario.query.filter_by(nombre_usuario=email).first()
+        
+        if not usuario_bd:
+            
+            usuario_bd = Usuario(
+                nombre_usuario=email,
+                contrasenia='oauth_google_placeholder',  
+                rol='OPERADOR',
+                nombre_completo=nombre,
+                activo=True
+            )
+            db.session.add(usuario_bd)
+            db.session.commit()
+        
+        
+        session['usuario'] = usuario_bd.nombre_usuario
+        session['nombre_completo'] = usuario_bd.nombre_completo
+        session['rol'] = usuario_bd.rol
+        
+    return redirect(url_for('seleccion_seccion'))
 
 if __name__ == '__main__':
     app.run(debug=True)
-
