@@ -30,7 +30,6 @@
             box-shadow: 0 12px 25px rgba(0, 0, 0, 0.15);
         }
 
-        
         .card-img-top {
             height: 140px;
             object-fit: contain;
@@ -44,8 +43,7 @@
 
     <nav class="navbar navbar-expand-lg navbar-dark navbar-custom px-4">
         <a class="navbar-brand fw-bold d-flex align-items-center" href="#">
-            <img src="{{ url_for('static', filename='css/sigi_logo.jpg') }}" alt="Logo" width="35" height="35"
-                class="rounded me-2 shadow-sm" style="object-fit: cover;">
+            <img src="{{ S3_URL }}sigi_logo.jpg" alt="Logo" width="35" height="35" class="rounded me-2 shadow-sm" style="object-fit: cover;">
             SIGI Web
         </a>
         <div class="ms-auto text-white">
@@ -69,8 +67,7 @@
             
             <div class="col-md-5">
                 <div class="card card-section shadow-sm h-100 text-center p-3">
-                    <img src="{{ url_for('static', filename='css/hematologia.jpg') }}" class="card-img-top"
-                        alt="Hematología">
+                    <img src="{{ S3_URL }}hematologia.jpg" class="card-img-top" alt="Hematología">
                     <div class="card-body p-2 d-flex flex-column justify-content-center">
                         <a href="/fijar-seccion/Hematología" class="btn btn-dark w-100 py-2 fw-bold">Ingresar a
                             Hematología</a>
@@ -78,11 +75,10 @@
                 </div>
             </div>
 
-           
+            
             <div class="col-md-5">
                 <div class="card card-section shadow-sm h-100 text-center p-3">
-                    <img src="{{ url_for('static', filename='css/hemostasia.jpg') }}" class="card-img-top"
-                        alt="Hemostasia">
+                    <img src="{{ S3_URL }}hemostasia.jpg" class="card-img-top" alt="Hemostasia">
                     <div class="card-body p-2 d-flex flex-column justify-content-center">
                         <a href="/fijar-seccion/Hemostasia" class="btn btn-primary w-100 py-2 fw-bold">Ingresar a
                             Hemostasia</a>
